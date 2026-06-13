@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>วัดพระธรรมกายในทวีปยุโรป</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ปุ่มเครื่องมือมุมขวาบน -->
+<div class="toolbar">
+  <button class="tool-btn" id="adminBtn" title="โหมดแอดมิน" aria-label="โหมดแอดมิน">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+  </button>
+  <button class="tool-btn" id="themeBtn" title="สลับโหมดมืด/สว่าง" aria-label="สลับโหมด">
+    <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    <svg id="iconSun" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+  </button>
+</div>
+
+<!-- หัวเว็บ -->
+<header class="header">
+  <svg class="emblem" viewBox="0 0 100 100">
+    <g class="ray" stroke-width="2">
+      <line x1="50" y1="6" x2="50" y2="20"/><line x1="50" y1="80" x2="50" y2="94"/>
+      <line x1="6" y1="50" x2="20" y2="50"/><line x1="80" y1="50" x2="94" y2="50"/>
+      <line x1="19" y1="19" x2="29" y2="29"/><line x1="71" y1="71" x2="81" y2="81"/>
+      <line x1="81" y1="19" x2="71" y2="29"/><line x1="29" y1="71" x2="19" y2="81"/>
+    </g>
+    <circle class="lotus" cx="50" cy="50" r="22"/>
+    <circle class="core" cx="50" cy="50" r="9"/>
+  </svg>
+  <h1 class="title">วัดพระธรรมกายในทวีปยุโรป</h1>
+  <p class="subtitle">รวมข้อมูลวัดและศูนย์ปฏิบัติธรรมในทวีปยุโรป</p>
+</header>
+
+<!-- แถบสรุป -->
+<div class="summary">
+  <div class="summary-card">
+    <div class="summary-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>
+    </div>
+    <div class="summary-text">
+      <div class="l1" id="summaryStat">กำลังโหลด…</div>
+      <div class="l2">วัดและศูนย์ปฏิบัติธรรมในทวีปยุโรป</div>
+    </div>
+  </div>
+</div>
+
+<!-- ค้นหา + กรองประเทศ -->
+<div class="controls">
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input type="text" class="search" id="search" placeholder="ค้นหาชื่อวัด ประเทศ หรือเจ้าอาวาส…">
+  </div>
+  <div class="select-wrap">
+    <select class="country-select" id="countrySelect" aria-label="กรองตามประเทศ"></select>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <span class="result-count" id="metaLine"></span>
+</div>
+
+<!-- การ์ดวัด -->
+<main class="grid" id="grid">
+  <div class="loader"><div class="spinner"></div>กำลังโหลดข้อมูลวัด…</div>
+</main>
+
+<footer>
+  จัดทำเพื่อชุมชนชาวพุทธไทยในทวีปยุโรป · ข้อมูลจาก Google Sheets
+</footer>
+
+<!-- โมดัลรายละเอียดวัด -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal" id="detailModal"></div>
+</div>
+
+<!-- โมดัลล็อกอินแอดมิน -->
+<div class="overlay" id="loginOverlay">
+  <div class="modal">
+    <button class="modal-close" data-close="loginOverlay" aria-label="ปิด">✕</button>
+    <div class="modal-pad">
+      <h3>เข้าสู่โหมดแอดมิน</h3>
+      <p class="hint">ใส่รหัสผ่านเพื่อเพิ่ม แก้ไข หรือลบงานบุญของวัด</p>
+      <div class="form-field">
+        <label for="pwInput">รหัสผ่าน</label>
+        <input type="password" id="pwInput" placeholder="••••••••" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <button class="btn" data-close="loginOverlay">ยกเลิก</button>
+        <button class="btn primary" id="pwSubmit">เข้าสู่ระบบ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- โมดัลฟอร์มงานบุญ -->
+<div class="overlay" id="eventOverlay">
+  <div class="modal">
+    <button class="modal-close" data-close="eventOverlay" aria-label="ปิด">✕</button>
+    <div class="modal-pad">
+      <h3 id="eventFormTitle">เพิ่มงานบุญ</h3>
+      <p class="hint" id="eventFormHint"></p>
+      <div class="form-field">
+        <label for="evDate">วันที่ (เช่น ๑๕ พ.ค. ๒๕๖๙ หรือ 2026-05-15)</label>
+        <input type="text" id="evDate" placeholder="วันที่จัดงาน">
+      </div>
+      <div class="form-field">
+        <label for="evTitle">ชื่องานบุญ</label>
+        <input type="text" id="evTitle" placeholder="เช่น งานบุญวันวิสาขบูชา">
+      </div>
+      <div class="form-field">
+        <label for="evDesc">รายละเอียด</label>
+        <textarea id="evDesc" placeholder="กำหนดการ / สถานที่ / หมายเหตุ"></textarea>
+      </div>
+      <div class="form-row">
+        <button class="btn" data-close="eventOverlay">ยกเลิก</button>
+        <button class="btn primary" id="evSave">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<button class="scroll-top" id="scrollTop" title="ขึ้นบนสุด" aria-label="ขึ้นบนสุด">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<!-- โหลด config ก่อน แล้วจึงโหลดสคริปต์หลัก -->
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
