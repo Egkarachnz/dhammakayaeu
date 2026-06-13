@@ -44,15 +44,26 @@ function csvToObjects(text){
 }
 async function fetchSheet(sheetName){
   const url=`https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), 10000); // timeout 10 วินาที
   let res;
-  try{ res = await fetch(url); }
-  catch(e){ throw new Error("เชื่อมต่อ Google ไม่ได้ (CORS/Network): "+e.message); }
+  try{ res = await fetch(url, {signal:ctrl.signal}); }
+  catch(e){
+    clearTimeout(timer);
+    if(e.name==="AbortError") throw new Error(`โหลดชีต "${sheetName}" หมดเวลา (timeout)\nตรวจสอบการเชื่อมต่ออินเทอร์เน็ต`);
+    throw new Error("เชื่อมต่อ Google ไม่ได้: "+e.message);
+  }
+  clearTimeout(timer);
   if(!res.ok) throw new Error(`โหลดชีต "${sheetName}" ไม่สำเร็จ (HTTP ${res.status})`);
   const text = await res.text();
-  // Google คืน HTML (หน้า login/error) เมื่อ Sheet ไม่ได้ตั้งเป็น public
-  if(text.trimStart().startsWith("<!")) throw new Error(
-    `ไม่สามารถอ่านชีต "${sheetName}" ได้\n` +
-    `→ เปิด Google Sheet → Share → เปลี่ยนเป็น "Anyone with the link" → Viewer`
+  const t = text.trimStart();
+  // Google คืน HTML เมื่อ Sheet ไม่ได้ตั้งเป็น public
+  if(t.startsWith("<!")) throw new Error(
+    `Sheet ไม่ได้เปิดเป็น Public\n→ Google Sheet → Share → "Anyone with the link" → Viewer`
+  );
+  // Google คืน JS wrapper เมื่อชื่อชีตไม่ตรง
+  if(t.startsWith("google.visualization") || t.startsWith("/*")) throw new Error(
+    `ไม่พบชีตชื่อ "${sheetName}"\n→ ตรวจสอบชื่อ tab ใน Google Sheet ให้ตรงกับ config.js`
   );
   return csvToObjects(text);
 }
