@@ -3,7 +3,6 @@
    ============================================================ */
 let TEMPLES = [], EVENTS = [], isAdmin = false, currentTemple = null, editingEvent = null;
 let activeCountry = "ทั้งหมด", searchQuery = "";
-const isDemo = () => !CONFIG.SHEET_ID;
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
@@ -15,110 +14,16 @@ function toast(msg, isErr){
   clearTimeout(t._tm); t._tm=setTimeout(()=>t.className="toast"+(isErr?" err":""),3200);
 }
 
-/* ดึงข้อมูลด้วย JSONP — ไม่มีปัญหา CORS ทุกกรณี */
-function fetchSheet(sheetName){
-  return new Promise((resolve, reject)=>{
-    const cb = '_gviz_' + Math.random().toString(36).slice(2);
-    let el, done = false;
-
-    const cleanup = ()=>{ done=true; delete window[cb]; if(el&&el.parentNode) el.parentNode.removeChild(el); };
-
-    const timer = setTimeout(()=>{
-      if(done) return;
-      cleanup();
-      reject(new Error(`โหลดชีต "${sheetName}" หมดเวลา\nตรวจสอบการเชื่อมต่ออินเทอร์เน็ต`));
-    }, 10000);
-
-    window[cb] = resp => {
-      clearTimeout(timer);
-      if(done) return;
-      cleanup();
-      if(resp.status==="error"){
-        const msg = resp.errors?.[0]?.detailed_message || resp.errors?.[0]?.message || "";
-        if(!msg || /not.found|NO_COLUMN|invalid/i.test(msg))
-          return reject(new Error(`ไม่พบชีตชื่อ "${sheetName}"\n→ ตรวจสอบชื่อ tab ให้ตรงกับ config.js`));
-        if(/access|permission|login/i.test(msg))
-          return reject(new Error(`Sheet ไม่ได้เปิดเป็น Public\n→ Share → "Anyone with the link" → Viewer`));
-        return reject(new Error(`ชีต "${sheetName}": ${msg}`));
-      }
-      if(!resp.table){ resolve([]); return; }
-      const cols = resp.table.cols.map(c=>(c.label||c.id||"").toLowerCase().trim());
-      const rows = (resp.table.rows||[]).map(row=>{
-        const o={};
-        cols.forEach((col,i)=>{ const cell=row.c?.[i]; o[col]=(cell&&cell.v!=null)?String(cell.v):""; });
-        return o;
-      });
-      resolve(rows);
-    };
-
-    el = document.createElement("script");
-    el.onerror = ()=>{ clearTimeout(timer); if(done) return; cleanup(); reject(new Error("เชื่อมต่อ Google Sheets ไม่ได้")); };
-    el.src = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq`
-           + `?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}`;
-    document.head.appendChild(el);
-  });
-}
-
-/* แปลงข้อมูลดิบจากชีตให้เป็นรูปแบบมาตรฐาน (รองรับชื่อคอลัมน์ไทย/อังกฤษ) */
-function normTemple(r){
-  const g=(...k)=>{for(const x of k)if(r[x]!=null&&r[x]!=="")return r[x];return"";};
-  return {
-    id: g("id","รหัส") || ("t"+Math.random().toString(36).slice(2,8)),
-    name: g("name_th","name","ชื่อวัด","ชื่อ"),
-    name_en: g("name_en"),
-    country: g("country","ประเทศ"),
-    abbot: g("abbot_name","abbot","เจ้าอาวาส","ชื่อเจ้าอาวาส"),
-    abbot_photo: g("abbot_photo","ภาพเจ้าอาวาส","abbot_image"),
-    logo: g("logo","โลโก้","logo_url"),
-    address: g("address","ที่อยู่"),
-    map_url: g("map_url","แผนที่","map"),
-    phone: g("phone","เบอร์โทร","โทร","tel"),
-    monk_count: g("monk_count","จำนวนพระ","จำนวนพระประจำวัด"),
-    monks: g("monks","พระประจำวัด","รายชื่อพระ","monk_names"),
-  };
-}
-function normEvent(r){
-  const g=(...k)=>{for(const x of k)if(r[x]!=null&&r[x]!=="")return r[x];return"";};
-  return {
-    id: g("id","รหัส") || ("e"+Math.random().toString(36).slice(2,8)),
-    temple_id: g("temple_id","รหัสวัด","วัด"),
-    date: g("date","วันที่"),
-    title: g("title","ชื่องาน","ชื่องานบุญ","หัวข้อ"),
-    description: g("description","รายละเอียด","desc"),
-  };
-}
-
 /* ============================================================
-   โหลดข้อมูล
+   โหลดข้อมูลจาก data.js โดยตรง — ไม่ต้องเชื่อม Google Sheets
    ============================================================ */
-async function loadData(){
-  if(isDemo()){
-    TEMPLES = DEMO_TEMPLES; EVENTS = DEMO_EVENTS;
-    render(); return;
-  }
-  try{
-    const [tp, ev] = await Promise.all([
-      fetchSheet(CONFIG.TEMPLES_SHEET),
-      fetchSheet(CONFIG.EVENTS_SHEET).catch(()=>[]),
-    ]);
-    TEMPLES = tp.map(normTemple).filter(t=>t.name);
-    EVENTS  = ev.map(normEvent);
-    render();
-  }catch(err){
-    const lines = esc(err.message).replace(/\n/g,”<br>”);
-    $(“#grid”).innerHTML=`<div class=”empty”>
-      ⚠️ โหลดข้อมูลไม่สำเร็จ<br><br>
-      <small style=”line-height:1.8”>${lines}</small><br><br>
-      <small style=”color:var(--text-mut)”>
-        SHEET_ID: <code style=”color:var(--gold)”>${esc(CONFIG.SHEET_ID)}</code><br>
-        ชีต Temples: <code>${esc(CONFIG.TEMPLES_SHEET)}</code> · ชีต Events: <code>${esc(CONFIG.EVENTS_SHEET)}</code>
-      </small>
-    </div>`;
-  }
+function loadData(){
+  TEMPLES = (typeof DATA_TEMPLES !== "undefined") ? DATA_TEMPLES.filter(t=>t.name) : [];
+  EVENTS  = (typeof DATA_EVENTS  !== "undefined") ? DATA_EVENTS  : [];
+  render();
 }
 async function refreshEvents(){
-  if(isDemo()) { render(); return; }
-  try{ EVENTS = (await fetchSheet(CONFIG.EVENTS_SHEET)).map(normEvent); }catch(e){}
+  EVENTS = (typeof DATA_EVENTS !== "undefined") ? DATA_EVENTS : [];
   if(currentTemple) openDetail(currentTemple.id, true);
 }
 
@@ -152,8 +57,7 @@ function render(){
     return okC && okQ;
   });
 
-  $("#metaLine").innerHTML = `พบ ${list.length} วัด`
-    + (isDemo()?`<span class="sample-badge">ข้อมูลตัวอย่าง</span>`:"");
+  $("#metaLine").innerHTML = `พบ ${list.length} วัด`;
 
   if(!list.length){
     $("#grid").innerHTML = `<div class="empty">ไม่พบวัดที่ตรงกับเงื่อนไข</div>`;
@@ -296,12 +200,12 @@ async function saveEvent(){
   };
   const action = editingEvent ? "edit" : "add";
 
-  // โหมดตัวอย่าง / ไม่มี Apps Script → แก้เฉพาะในหน่วยความจำ
-  if(isDemo() || !CONFIG.ADMIN_URL){
+  // บันทึกในหน่วยความจำ (ไม่มี Apps Script)
+  if(!CONFIG.ADMIN_URL){
     if(action==="add") EVENTS.push(payload);
     else { const i=EVENTS.findIndex(e=>e.id===payload.id); if(i>-1) EVENTS[i]=payload; }
     closeOverlay("eventOverlay"); openDetail(currentTemple.id);
-    toast(isDemo()?"บันทึก (โหมดตัวอย่าง)":"บันทึกชั่วคราว — ตั้งค่า Apps Script เพื่อบันทึกถาวร");
+    toast("บันทึกชั่วคราว — เพิ่มข้อมูลถาวรใน data.js");
     return;
   }
   await sendToScript({action, secret:CONFIG.ADMIN_PASSWORD, event:payload}, "บันทึกงานบุญแล้ว");
@@ -310,7 +214,7 @@ async function saveEvent(){
 
 async function deleteEvent(id){
   if(!confirm("ต้องการลบงานบุญนี้ใช่หรือไม่?")) return;
-  if(isDemo() || !CONFIG.ADMIN_URL){
+  if(!CONFIG.ADMIN_URL){
     EVENTS = EVENTS.filter(e=>e.id!==id);
     openDetail(currentTemple.id); toast("ลบแล้ว"); return;
   }
