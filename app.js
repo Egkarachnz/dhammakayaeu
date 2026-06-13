@@ -15,57 +15,48 @@ function toast(msg, isErr){
   clearTimeout(t._tm); t._tm=setTimeout(()=>t.className="toast"+(isErr?" err":""),3200);
 }
 
-/* แปลง CSV (รองรับเครื่องหมายคำพูดและคอมมาในเซลล์) */
-function parseCSV(text){
-  const rows=[]; let row=[], cell="", q=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i];
-    if(q){
-      if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; }
-      else cell+=c;
-    }else{
-      if(c==='"') q=true;
-      else if(c===',') {row.push(cell);cell="";}
-      else if(c==='\n'){row.push(cell);rows.push(row);row=[];cell="";}
-      else if(c==='\r'){}
-      else cell+=c;
-    }
-  }
-  if(cell.length||row.length){row.push(cell);rows.push(row);}
-  return rows;
-}
-function csvToObjects(text){
-  const rows=parseCSV(text).filter(r=>r.some(c=>c.trim()!==""));
-  if(!rows.length) return [];
-  const head=rows[0].map(h=>h.trim().toLowerCase());
-  return rows.slice(1).map(r=>{
-    const o={}; head.forEach((h,i)=>o[h]=(r[i]||"").trim()); return o;
+/* ดึงข้อมูลด้วย JSONP — ไม่มีปัญหา CORS ทุกกรณี */
+function fetchSheet(sheetName){
+  return new Promise((resolve, reject)=>{
+    const cb = '_gviz_' + Math.random().toString(36).slice(2);
+    let el, done = false;
+
+    const cleanup = ()=>{ done=true; delete window[cb]; if(el&&el.parentNode) el.parentNode.removeChild(el); };
+
+    const timer = setTimeout(()=>{
+      if(done) return;
+      cleanup();
+      reject(new Error(`โหลดชีต "${sheetName}" หมดเวลา\nตรวจสอบการเชื่อมต่ออินเทอร์เน็ต`));
+    }, 10000);
+
+    window[cb] = resp => {
+      clearTimeout(timer);
+      if(done) return;
+      cleanup();
+      if(resp.status==="error"){
+        const msg = resp.errors?.[0]?.detailed_message || resp.errors?.[0]?.message || "";
+        if(!msg || /not.found|NO_COLUMN|invalid/i.test(msg))
+          return reject(new Error(`ไม่พบชีตชื่อ "${sheetName}"\n→ ตรวจสอบชื่อ tab ให้ตรงกับ config.js`));
+        if(/access|permission|login/i.test(msg))
+          return reject(new Error(`Sheet ไม่ได้เปิดเป็น Public\n→ Share → "Anyone with the link" → Viewer`));
+        return reject(new Error(`ชีต "${sheetName}": ${msg}`));
+      }
+      if(!resp.table){ resolve([]); return; }
+      const cols = resp.table.cols.map(c=>(c.label||c.id||"").toLowerCase().trim());
+      const rows = (resp.table.rows||[]).map(row=>{
+        const o={};
+        cols.forEach((col,i)=>{ const cell=row.c?.[i]; o[col]=(cell&&cell.v!=null)?String(cell.v):""; });
+        return o;
+      });
+      resolve(rows);
+    };
+
+    el = document.createElement("script");
+    el.onerror = ()=>{ clearTimeout(timer); if(done) return; cleanup(); reject(new Error("เชื่อมต่อ Google Sheets ไม่ได้")); };
+    el.src = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq`
+           + `?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}`;
+    document.head.appendChild(el);
   });
-}
-async function fetchSheet(sheetName){
-  const url=`https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
-  const ctrl = new AbortController();
-  const timer = setTimeout(()=>ctrl.abort(), 10000); // timeout 10 วินาที
-  let res;
-  try{ res = await fetch(url, {signal:ctrl.signal}); }
-  catch(e){
-    clearTimeout(timer);
-    if(e.name==="AbortError") throw new Error(`โหลดชีต "${sheetName}" หมดเวลา (timeout)\nตรวจสอบการเชื่อมต่ออินเทอร์เน็ต`);
-    throw new Error("เชื่อมต่อ Google ไม่ได้: "+e.message);
-  }
-  clearTimeout(timer);
-  if(!res.ok) throw new Error(`โหลดชีต "${sheetName}" ไม่สำเร็จ (HTTP ${res.status})`);
-  const text = await res.text();
-  const t = text.trimStart();
-  // Google คืน HTML เมื่อ Sheet ไม่ได้ตั้งเป็น public
-  if(t.startsWith("<!")) throw new Error(
-    `Sheet ไม่ได้เปิดเป็น Public\n→ Google Sheet → Share → "Anyone with the link" → Viewer`
-  );
-  // Google คืน JS wrapper เมื่อชื่อชีตไม่ตรง
-  if(t.startsWith("google.visualization") || t.startsWith("/*")) throw new Error(
-    `ไม่พบชีตชื่อ "${sheetName}"\n→ ตรวจสอบชื่อ tab ใน Google Sheet ให้ตรงกับ config.js`
-  );
-  return csvToObjects(text);
 }
 
 /* แปลงข้อมูลดิบจากชีตให้เป็นรูปแบบมาตรฐาน (รองรับชื่อคอลัมน์ไทย/อังกฤษ) */
