@@ -6,6 +6,21 @@ let activeCountry = "ทั้งหมด", searchQuery = "";
 
 const STORAGE_KEY = "dhammakaya-temples-v1";
 
+/* ── Country flags ── */
+const FLAGS = {
+  "เบลเยียม":"🇧🇪","เยอรมนี":"🇩🇪","อังกฤษ":"🇬🇧","สหราชอาณาจักร":"🇬🇧",
+  "ฝรั่งเศส":"🇫🇷","เนเธอร์แลนด์":"🇳🇱","สวิตเซอร์แลนด์":"🇨🇭","ออสเตรีย":"🇦🇹",
+  "เดนมาร์ก":"🇩🇰","สวีเดน":"🇸🇪","นอร์เวย์":"🇳🇴","ฟินแลนด์":"🇫🇮",
+  "อิตาลี":"🇮🇹","สเปน":"🇪🇸","โปรตุเกส":"🇵🇹","กรีซ":"🇬🇷",
+  "โปแลนด์":"🇵🇱","เช็กเกีย":"🇨🇿","เช็ก":"🇨🇿","ฮังการี":"🇭🇺",
+  "โรมาเนีย":"🇷🇴","บัลแกเรีย":"🇧🇬","ไอร์แลนด์":"🇮🇪","ลักเซมเบิร์ก":"🇱🇺",
+  "ไซปรัส":"🇨🇾","สโลวาเกีย":"🇸🇰","สโลวีเนีย":"🇸🇮","โครเอเชีย":"🇭🇷",
+  "ไอซ์แลนด์":"🇮🇸","มอลต้า":"🇲🇹","มอลตา":"🇲🇹","รัสเซีย":"🇷🇺",
+  "ยูเครน":"🇺🇦","เซอร์เบีย":"🇷🇸","ลัตเวีย":"🇱🇻","ลิทัวเนีย":"🇱🇹",
+  "เอสโตเนีย":"🇪🇪","ไทย":"🇹🇭","ญี่ปุ่น":"🇯🇵","สิงคโปร์":"🇸🇬",
+};
+const flag = c => FLAGS[c] ? FLAGS[c] + " " : "";
+
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const mapUrl = a => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a || "");
@@ -94,10 +109,7 @@ function cardHTML(t) {
         <div class="card-logo">${logoInner}</div>
         <div class="card-title-wrap">
           <div class="card-name">${esc(t.name)}</div>
-          ${t.country ? `<span class="card-country-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            ${esc(t.country)}
-          </span>` : ""}
+          ${t.country ? `<span class="card-country-badge">${flag(t.country)}${esc(t.country)}</span>` : ""}
         </div>
       </div>
       <div class="card-divider"></div>
@@ -179,9 +191,7 @@ function openDetail(id) {
     <div class="modal-hero">
       ${abbotEl}
       <div class="modal-temple">${esc(t.name)}</div>
-      ${t.country ? `<div class="modal-country-badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:12px;height:12px"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        ${esc(t.country)}</div>` : ""}
+      ${t.country ? `<div class="modal-country-badge">${flag(t.country)}${esc(t.country)}</div>` : ""}
       ${t.abbot ? `<div class="modal-abbot-label">เจ้าอาวาส</div><div class="modal-abbot-name">${esc(t.abbot)}</div>` : ""}
     </div>
 
@@ -245,9 +255,23 @@ function openLogin() {
 }
 function tryLogin() {
   if ($("#pwInput").value === CONFIG.ADMIN_PASSWORD) {
-    setAdmin(true); closeOverlay("loginOverlay"); toast("เข้าสู่โหมดแอดมินแล้ว");
-    openAdmin();
-  } else toast("รหัสผ่านไม่ถูกต้อง", true);
+    setAdmin(true);
+    closeOverlay("loginOverlay");
+    const btn = $("#adminBtn");
+    btn.classList.remove("login-anim");
+    void btn.offsetWidth;
+    btn.classList.add("login-anim");
+    setTimeout(() => btn.classList.remove("login-anim"), 800);
+    toast("เข้าสู่โหมดแอดมินแล้ว ยินดีต้อนรับ 🙏");
+    setTimeout(openAdmin, 300);
+  } else {
+    toast("รหัสผ่านไม่ถูกต้อง", true);
+    const inp = $("#pwInput");
+    inp.classList.remove("shake");
+    void inp.offsetWidth;
+    inp.classList.add("shake");
+    setTimeout(() => inp.classList.remove("shake"), 500);
+  }
 }
 function setAdmin(on) {
   isAdmin = on; document.body.classList.toggle("admin-on", on);
@@ -474,6 +498,18 @@ function deleteEvent(id) {
 }
 
 /* ============================================================
+   Clock
+   ============================================================ */
+function updateClock() {
+  const now = new Date();
+  const tz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const te = $("#clockTime"), de = $("#clockDate"), ze = $("#clockTz");
+  if (te) te.textContent = now.toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false });
+  if (de) de.textContent = now.toLocaleDateString("th-TH", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+  if (ze) ze.textContent = tz.replace(/_/g," ");
+}
+
+/* ============================================================
    Overlay helpers
    ============================================================ */
 function openOverlay(id)  { $("#" + id).classList.add("open");    document.body.style.overflow = "hidden"; }
@@ -519,6 +555,25 @@ function toggleTheme() {
   document.addEventListener("keydown", e => {
     if (e.key === "Escape") document.querySelectorAll(".overlay.open").forEach(o => closeOverlay(o.id));
   });
+
+  // Clock
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Footer social links
+  const socialDefs = [
+    { key:"facebook",  icon:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>`, label:"Facebook" },
+    { key:"youtube",   icon:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.95C5.12 20 12 20 12 20s6.88 0 8.59-.47a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02V8.98L15.5 12z"/></svg>`, label:"YouTube" },
+    { key:"line",      icon:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.88 10.34C21.88 5.63 17.17 2 11.44 2S1 5.63 1 10.34c0 4.27 3.79 7.85 8.91 8.53.35.07.82.23.94.52.11.27.07.69.03.96l-.15.91c-.04.27-.21 1.07.94.58 1.14-.48 6.17-3.63 8.42-6.22A7.56 7.56 0 0 0 21.88 10.34z"/></svg>`, label:"LINE" },
+    { key:"instagram", icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`, label:"Instagram" },
+  ];
+  const fs = document.getElementById("footerSocials");
+  if (fs && CONFIG.SOCIAL) {
+    fs.innerHTML = socialDefs
+      .filter(s => CONFIG.SOCIAL[s.key])
+      .map(s => `<a href="${esc(CONFIG.SOCIAL[s.key])}" target="_blank" rel="noopener" class="footer-social-btn" title="${s.label}" aria-label="${s.label}">${s.icon}</a>`)
+      .join("");
+  }
 
   loadData();
 })();
