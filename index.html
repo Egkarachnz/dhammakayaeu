@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
 
@@ -83,11 +83,15 @@
   </div>
 </header>
 
-<!-- ค้นหา + เรียงลำดับ -->
+<!-- ค้นหา -->
 <div class="controls">
   <div class="search-wrap">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
     <input type="text" class="search" id="search" placeholder="ค้นหาชื่อวัด ประเทศ เจ้าอาวาส ที่อยู่ หรือเบอร์โทร…">
+  </div>
+  <div class="select-wrap">
+    <select class="country-select" id="countrySelect" aria-label="กรองตามประเทศ"></select>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
   </div>
   <div class="select-wrap">
     <select class="country-select" id="sortSelect" aria-label="เรียงลำดับ">
@@ -100,7 +104,7 @@
   </div>
 </div>
 
-<!-- ชิปกรองประเทศ พร้อมธงชาติและจำนวน -->
+<!-- ชิปลัดประเทศยอดนิยม (รายการเต็มอยู่ในดรอปดาวน์ด้านบน) -->
 <div class="filter-chips" id="filterChips"></div>
 
 <!-- จำนวนผลลัพธ์ -->
@@ -245,8 +249,8 @@
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>
 
-<script src="config.js?v=5"></script>
-<script src="data.js?v=5"></script>
-<script src="app.js?v=5"></script>
+<script src="config.js?v=6"></script>
+<script src="data.js?v=6"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

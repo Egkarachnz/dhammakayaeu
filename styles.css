@@ -122,6 +122,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:
 }
 .chip.active{background:var(--blue);border-color:var(--blue);color:#fff}
 .chip.active .chip-count{background:rgba(255,255,255,.22);color:#fff}
+.chip-more{border-style:dashed;color:var(--text-dim);font-weight:600}
+.chip-more:hover{border-color:var(--blue);color:var(--blue)}
 
 /* ── RESULT BAR ── */
 .result-bar{position:relative;z-index:1;max-width:var(--maxw);margin:18px auto 0;padding:0 20px}
@@ -470,8 +472,13 @@ footer{
   .hero-stats{gap:20px;padding:14px 22px}
   .hstat-num{font-size:1.8rem}
   .hc-tz{display:none}
-  .controls{flex-direction:column;align-items:stretch}
-  .select-wrap,.country-select{width:100%}
+  /* ค้นหาเต็มแถว แล้วดรอปดาวน์สองอันแชร์แถวถัดไป */
+  .controls{gap:10px}
+  .search-wrap{flex:1 0 100%;width:100%}
+  .select-wrap{flex:1 1 0;min-width:0}
+  .country-select{width:100%;min-width:0}
+  .filter-chips{gap:7px}
+  .chip{font-size:.82rem;padding:6px 12px}
   .footer-inner{grid-template-columns:1fr;gap:28px}
   .toolbar{top:12px;right:12px}
   .form-row{flex-direction:column-reverse}

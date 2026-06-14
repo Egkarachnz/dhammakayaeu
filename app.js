@@ -81,14 +81,23 @@ function quickFilter(c) {
 
 function render() {
   const countries = uniqueCountries();
+  const byCount = countries.slice().sort((a, b) => countryCount(b) - countryCount(a) || a.localeCompare(b, "th"));
 
   // สถิติในฮีโร่
   const st = $("#statTemples"), sc = $("#statCountries");
   if (st) st.textContent = TEMPLES.length;
   if (sc) sc.textContent = countries.length;
 
-  // ชิปกรองประเทศ พร้อมธงและจำนวน
-  renderChips(countries);
+  // ดรอปดาวน์กรองประเทศ (รายการเต็ม)
+  const sel = $("#countrySelect");
+  if (sel) {
+    sel.innerHTML = `<option value="ทั้งหมด">🌍 ทุกประเทศ (${TEMPLES.length})</option>` +
+      byCount.map(c => `<option value="${esc(c)}">${flag(c)}${esc(c)} (${countryCount(c)})</option>`).join("");
+    sel.value = activeCountry;
+  }
+
+  // ชิปลัด — เฉพาะประเทศยอดนิยม
+  renderChips(byCount);
 
   // กรอง
   const q = searchQuery.trim().toLowerCase();
@@ -114,15 +123,24 @@ function render() {
   $("#grid").innerHTML = list.map(cardHTML).join("");
 }
 
-function renderChips(countries) {
+function renderChips(byCount) {
   const el = $("#filterChips");
   if (!el) return;
-  const sorted = countries.slice().sort((a, b) => countryCount(b) - countryCount(a) || a.localeCompare(b, "th"));
+  const TOP = 5; // จำนวนชิปลัด — ที่เหลือเลือกจากดรอปดาวน์
   const chip = (val, label, count, active) =>
     `<button class="chip${active ? " active" : ""}" onclick="setCountry('${esc(val).replace(/'/g, "\\'")}')">${label}<span class="chip-count">${count}</span></button>`;
+
+  const top = byCount.slice(0, TOP);
+  // ถ้าประเทศที่เลือกอยู่นอก TOP ให้เพิ่มชิปนั้นเข้ามาด้วยจะได้เห็นสถานะ active
+  if (activeCountry !== "ทั้งหมด" && !top.includes(activeCountry) && byCount.includes(activeCountry)) {
+    top.push(activeCountry);
+  }
+  const hidden = byCount.length - byCount.slice(0, TOP).length;
+
   el.innerHTML =
     chip("ทั้งหมด", "🌍 ทั้งหมด", TEMPLES.length, activeCountry === "ทั้งหมด") +
-    sorted.map(c => chip(c, `${flag(c)}${esc(c)}`, countryCount(c), activeCountry === c)).join("");
+    top.map(c => chip(c, `${flag(c)}${esc(c)}`, countryCount(c), activeCountry === c)).join("") +
+    (hidden > 0 ? `<button class="chip chip-more" onclick="document.getElementById('countrySelect').focus()">+${hidden} ประเทศ ▾</button>` : "");
 }
 
 function cardHTML(t) {
@@ -575,6 +593,7 @@ function toggleTheme() {
   $("#evSave").onclick     = saveEvent;
   $("#pwInput").addEventListener("keydown", e => { if (e.key === "Enter") tryLogin(); });
   $("#search").addEventListener("input", e => { searchQuery = e.target.value; render(); });
+  $("#countrySelect").addEventListener("change", e => { activeCountry = e.target.value; render(); });
   $("#sortSelect").addEventListener("change", e => { sortBy = e.target.value; render(); });
 
   const st = $("#scrollTop");
