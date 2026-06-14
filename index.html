@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 
@@ -22,62 +22,89 @@
   </button>
 </div>
 
-<!-- หัวเว็บ -->
-<header class="header">
-  <svg class="emblem" viewBox="0 0 100 100">
-    <g class="ray" stroke-width="2">
-      <line x1="50" y1="6" x2="50" y2="20"/><line x1="50" y1="80" x2="50" y2="94"/>
-      <line x1="6" y1="50" x2="20" y2="50"/><line x1="80" y1="50" x2="94" y2="50"/>
-      <line x1="19" y1="19" x2="29" y2="29"/><line x1="71" y1="71" x2="81" y2="81"/>
-      <line x1="81" y1="19" x2="71" y2="29"/><line x1="29" y1="71" x2="19" y2="81"/>
+<!-- หัวเว็บ (Hero + ธงชาติยุโรปเป็นพื้นหลัง) -->
+<header class="hero">
+  <svg class="hero-stars" viewBox="0 0 500 500" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <polygon id="euStar" points="0,-24 5.64,-7.77 22.83,-7.42 9.13,2.97 14.11,19.42 0,9.6 -14.11,19.42 -9.13,2.97 -22.83,-7.42 -5.64,-7.77"/>
+    </defs>
+    <g fill="var(--gold)">
+      <use href="#euStar" x="250" y="75"/>
+      <use href="#euStar" x="337.5" y="98.45"/>
+      <use href="#euStar" x="401.55" y="162.5"/>
+      <use href="#euStar" x="425" y="250"/>
+      <use href="#euStar" x="401.55" y="337.5"/>
+      <use href="#euStar" x="337.5" y="401.55"/>
+      <use href="#euStar" x="250" y="425"/>
+      <use href="#euStar" x="162.5" y="401.55"/>
+      <use href="#euStar" x="98.45" y="337.5"/>
+      <use href="#euStar" x="75" y="250"/>
+      <use href="#euStar" x="98.45" y="162.5"/>
+      <use href="#euStar" x="162.5" y="98.45"/>
     </g>
-    <circle class="lotus" cx="50" cy="50" r="22"/>
-    <circle class="core" cx="50" cy="50" r="9"/>
   </svg>
-  <h1 class="title">วัดพระธรรมกายในทวีปยุโรป</h1>
-  <p class="subtitle">รวมข้อมูลวัดและศูนย์ปฏิบัติธรรมในทวีปยุโรป</p>
+
+  <div class="hero-inner">
+    <svg class="emblem" viewBox="0 0 100 100">
+      <g class="ray" stroke-width="2">
+        <line x1="50" y1="6" x2="50" y2="20"/><line x1="50" y1="80" x2="50" y2="94"/>
+        <line x1="6" y1="50" x2="20" y2="50"/><line x1="80" y1="50" x2="94" y2="50"/>
+        <line x1="19" y1="19" x2="29" y2="29"/><line x1="71" y1="71" x2="81" y2="81"/>
+        <line x1="81" y1="19" x2="71" y2="29"/><line x1="29" y1="71" x2="19" y2="81"/>
+      </g>
+      <circle class="lotus" cx="50" cy="50" r="22"/>
+      <circle class="core" cx="50" cy="50" r="9"/>
+    </svg>
+    <h1 class="title">วัดพระธรรมกายในทวีปยุโรป</h1>
+    <p class="subtitle">รวมข้อมูลวัดและศูนย์ปฏิบัติธรรมในทวีปยุโรป</p>
+
+    <!-- นาฬิกาเวลาท้องถิ่น (ไม่มีกรอบ) -->
+    <div class="hero-clock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      <span class="hc-time" id="clockTime">--:--:--</span>
+      <span class="hc-dot">·</span>
+      <span class="hc-date" id="clockDate"></span>
+      <span class="hc-dot">·</span>
+      <span class="hc-tz" id="clockTz"></span>
+    </div>
+
+    <!-- สถิติ -->
+    <div class="hero-stats">
+      <div class="hstat">
+        <span class="hstat-num" id="statTemples">0</span>
+        <span class="hstat-label">วัด &amp; ศูนย์ปฏิบัติธรรม</span>
+      </div>
+      <span class="hstat-div"></span>
+      <div class="hstat">
+        <span class="hstat-num" id="statCountries">0</span>
+        <span class="hstat-label">ประเทศในยุโรป</span>
+      </div>
+    </div>
+  </div>
 </header>
 
-<!-- นาฬิกาเวลาท้องถิ่น -->
-<div class="clock-widget">
-  <div class="clock-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-  </div>
-  <div class="clock-body">
-    <div class="clock-time" id="clockTime">--:--:--</div>
-    <div class="clock-meta">
-      <span class="clock-date" id="clockDate"></span>
-      <span class="clock-sep">·</span>
-      <span class="clock-tz" id="clockTz"></span>
-    </div>
-  </div>
-</div>
-
-<!-- แถบสรุป -->
-<div class="summary">
-  <div class="summary-card">
-    <div class="summary-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>
-    </div>
-    <div class="summary-text">
-      <div class="l1" id="summaryStat">กำลังโหลด…</div>
-      <div class="l2">วัดและศูนย์ปฏิบัติธรรมในทวีปยุโรป</div>
-    </div>
-  </div>
-</div>
-
-<!-- ค้นหา + กรองประเทศ -->
+<!-- ค้นหา + เรียงลำดับ -->
 <div class="controls">
   <div class="search-wrap">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-    <input type="text" class="search" id="search" placeholder="ค้นหาชื่อวัด ประเทศ หรือเจ้าอาวาส…">
+    <input type="text" class="search" id="search" placeholder="ค้นหาชื่อวัด ประเทศ เจ้าอาวาส ที่อยู่ หรือเบอร์โทร…">
   </div>
   <div class="select-wrap">
-    <select class="country-select" id="countrySelect" aria-label="กรองตามประเทศ"></select>
+    <select class="country-select" id="sortSelect" aria-label="เรียงลำดับ">
+      <option value="default">เรียง: ค่าเริ่มต้น</option>
+      <option value="name">ชื่อวัด (ก–ฮ)</option>
+      <option value="country">ตามประเทศ</option>
+      <option value="monks">จำนวนพระ (มาก→น้อย)</option>
+    </select>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
   </div>
-  <span class="result-count" id="metaLine"></span>
 </div>
+
+<!-- ชิปกรองประเทศ พร้อมธงชาติและจำนวน -->
+<div class="filter-chips" id="filterChips"></div>
+
+<!-- จำนวนผลลัพธ์ -->
+<div class="result-bar"><span class="result-count" id="metaLine"></span></div>
 
 <!-- กริดการ์ดวัด -->
 <main class="grid" id="grid">
@@ -87,7 +114,8 @@
 <footer>
   <div class="footer-top">
     <div class="footer-inner">
-      <div class="footer-brand">
+
+      <div class="footer-col footer-brand">
         <svg class="footer-emblem" viewBox="0 0 100 100">
           <g stroke="var(--gold)" stroke-width="2" opacity=".6">
             <line x1="50" y1="6" x2="50" y2="20"/><line x1="50" y1="80" x2="50" y2="94"/>
@@ -100,13 +128,22 @@
         </svg>
         <div>
           <div class="footer-name">วัดพระธรรมกายในทวีปยุโรป</div>
-          <div class="footer-tagline">Dhammakaya Temples & Meditation Centres Across Europe</div>
+          <div class="footer-tagline">Dhammakaya Temples &amp; Meditation Centres Across Europe</div>
+          <p class="footer-desc">รวมข้อมูลวัดและศูนย์ปฏิบัติธรรมสายธรรมกายทั่วทวีปยุโรป เพื่อให้สาธุชนค้นหาวัดใกล้ตัวและร่วมงานบุญได้สะดวก</p>
         </div>
       </div>
-      <div class="footer-follow">
-        <div class="footer-follow-label">ติดตามเรา</div>
-        <div class="footer-socials" id="footerSocials"></div>
+
+      <div class="footer-col">
+        <div class="footer-col-title">ประเทศยอดนิยม</div>
+        <div class="footer-links" id="footerCountries"></div>
       </div>
+
+      <div class="footer-col">
+        <div class="footer-col-title">ติดตามเรา</div>
+        <div class="footer-socials" id="footerSocials"></div>
+        <p class="footer-note" id="footerSocialNote">ช่องทางโซเชียลจะแสดงที่นี่เมื่อเพิ่มลิงก์ในการตั้งค่า</p>
+      </div>
+
     </div>
   </div>
   <div class="footer-copy">
@@ -208,8 +245,8 @@
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>
 
-<script src="config.js?v=4"></script>
-<script src="data.js?v=4"></script>
-<script src="app.js?v=4"></script>
+<script src="config.js?v=5"></script>
+<script src="data.js?v=5"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

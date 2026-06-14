@@ -2,7 +2,7 @@
    State
    ============================================================ */
 let TEMPLES = [], EVENTS = [], isAdmin = false, currentTemple = null, editingEvent = null;
-let activeCountry = "ทั้งหมด", searchQuery = "";
+let activeCountry = "ทั้งหมด", searchQuery = "", sortBy = "default";
 
 const STORAGE_KEY = "dhammakaya-temples-v1";
 
@@ -65,31 +65,64 @@ function uniqueCountries() {
   TEMPLES.forEach(t => { if (t.country && !seen.includes(t.country)) seen.push(t.country); });
   return seen;
 }
+function countryCount(c) {
+  return TEMPLES.filter(t => t.country === c).length;
+}
+
+/* เปลี่ยนประเทศที่กรอง (ใช้จากชิป + ลิงก์ฟุตเตอร์) */
+function setCountry(c) {
+  activeCountry = c;
+  render();
+}
+function quickFilter(c) {
+  setCountry(c);
+  document.querySelector(".controls")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 function render() {
   const countries = uniqueCountries();
 
-  const sel = $("#countrySelect");
-  sel.innerHTML = `<option value="ทั้งหมด">ทุกประเทศ</option>` +
-    countries.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-  sel.value = activeCountry;
+  // สถิติในฮีโร่
+  const st = $("#statTemples"), sc = $("#statCountries");
+  if (st) st.textContent = TEMPLES.length;
+  if (sc) sc.textContent = countries.length;
 
-  $("#summaryStat").textContent = `${TEMPLES.length} วัด · ${countries.length} ประเทศ`;
+  // ชิปกรองประเทศ พร้อมธงและจำนวน
+  renderChips(countries);
 
+  // กรอง
   const q = searchQuery.trim().toLowerCase();
-  const list = TEMPLES.filter(t => {
+  let list = TEMPLES.filter(t => {
     const okC = activeCountry === "ทั้งหมด" || t.country === activeCountry;
-    const okQ = !q || [t.name, t.country, t.abbot, t.address].some(v => String(v || "").toLowerCase().includes(q));
+    const okQ = !q || [t.name, t.country, t.abbot, t.address, t.phone, t.monks].some(v => String(v || "").toLowerCase().includes(q));
     return okC && okQ;
   });
 
-  $("#metaLine").innerHTML = `พบ ${list.length} วัด`;
+  // เรียงลำดับ
+  if (sortBy === "name")    list = list.slice().sort((a, b) => (a.name || "").localeCompare(b.name || "", "th"));
+  else if (sortBy === "country") list = list.slice().sort((a, b) => (a.country || "").localeCompare(b.country || "", "th") || (a.name || "").localeCompare(b.name || "", "th"));
+  else if (sortBy === "monks")   list = list.slice().sort((a, b) => countMonks(b) - countMonks(a));
+
+  $("#metaLine").innerHTML = activeCountry === "ทั้งหมด"
+    ? `พบ <strong style="color:var(--text)">${list.length}</strong> วัด`
+    : `พบ <strong style="color:var(--text)">${list.length}</strong> วัดใน ${flag(activeCountry)}${esc(activeCountry)}`;
 
   if (!list.length) {
     $("#grid").innerHTML = `<div class="empty">ไม่พบวัดที่ตรงกับเงื่อนไข</div>`;
     return;
   }
   $("#grid").innerHTML = list.map(cardHTML).join("");
+}
+
+function renderChips(countries) {
+  const el = $("#filterChips");
+  if (!el) return;
+  const sorted = countries.slice().sort((a, b) => countryCount(b) - countryCount(a) || a.localeCompare(b, "th"));
+  const chip = (val, label, count, active) =>
+    `<button class="chip${active ? " active" : ""}" onclick="setCountry('${esc(val).replace(/'/g, "\\'")}')">${label}<span class="chip-count">${count}</span></button>`;
+  el.innerHTML =
+    chip("ทั้งหมด", "🌍 ทั้งหมด", TEMPLES.length, activeCountry === "ทั้งหมด") +
+    sorted.map(c => chip(c, `${flag(c)}${esc(c)}`, countryCount(c), activeCountry === c)).join("");
 }
 
 function cardHTML(t) {
@@ -542,7 +575,7 @@ function toggleTheme() {
   $("#evSave").onclick     = saveEvent;
   $("#pwInput").addEventListener("keydown", e => { if (e.key === "Enter") tryLogin(); });
   $("#search").addEventListener("input", e => { searchQuery = e.target.value; render(); });
-  $("#countrySelect").addEventListener("change", e => { activeCountry = e.target.value; render(); });
+  $("#sortSelect").addEventListener("change", e => { sortBy = e.target.value; render(); });
 
   const st = $("#scrollTop");
   st.onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
@@ -568,12 +601,28 @@ function toggleTheme() {
     { key:"instagram", icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`, label:"Instagram" },
   ];
   const fs = document.getElementById("footerSocials");
+  const note = document.getElementById("footerSocialNote");
   if (fs && CONFIG.SOCIAL) {
-    fs.innerHTML = socialDefs
-      .filter(s => CONFIG.SOCIAL[s.key])
+    const links = socialDefs.filter(s => CONFIG.SOCIAL[s.key]);
+    fs.innerHTML = links
       .map(s => `<a href="${esc(CONFIG.SOCIAL[s.key])}" target="_blank" rel="noopener" class="footer-social-btn" title="${s.label}" aria-label="${s.label}">${s.icon}</a>`)
       .join("");
+    if (note) note.style.display = links.length ? "none" : "block";
   }
 
-  loadData();
+  loadData();          // ต้องโหลดข้อมูลก่อนจึงจะนับประเทศได้
+  renderFooterCountries();
 })();
+
+/* ลิงก์ประเทศยอดนิยมในฟุตเตอร์ (เรียงตามจำนวนวัด) */
+function renderFooterCountries() {
+  const el = document.getElementById("footerCountries");
+  if (!el) return;
+  const top = uniqueCountries()
+    .slice()
+    .sort((a, b) => countryCount(b) - countryCount(a) || a.localeCompare(b, "th"))
+    .slice(0, 6);
+  el.innerHTML = top.map(c =>
+    `<button class="footer-link" onclick="quickFilter('${esc(c).replace(/'/g, "\\'")}')">${flag(c)}${esc(c)} <span class="fl-count">${countryCount(c)} วัด</span></button>`
+  ).join("");
+}
