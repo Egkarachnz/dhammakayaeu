@@ -129,22 +129,72 @@ function cardHTML(t) {
 function openDetail(id) {
   const t = TEMPLES.find(x => x.id === id); if (!t) return;
   currentTemple = t;
-  const monks = splitMonks(t.monks);
-  const evs = EVENTS.filter(e => e.temple_id === t.id);
+  const monks  = splitMonks(t.monks);
+  const evs    = EVENTS.filter(e => e.temple_id === t.id);
+  const addr   = t.address || "";
+  const murl   = t.map_url || (addr ? mapUrl(addr) : "");
 
-  const abbotPhoto = t.abbot_photo
-    ? `<img class="abbot-photo" src="${esc(t.abbot_photo)}" alt="" onerror="this.outerHTML='<div class=\\'abbot-photo\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.6\\'><circle cx=\\'12\\' cy=\\'8\\' r=\\'4\\'/><path d=\\'M4 21v-1a7 7 0 0 1 14 0v1\\'/></svg></div>'">`
-    : `<div class="abbot-photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></div>`;
+  // ── Abbot photo ──
+  const personSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg>`;
+  const abbotEl = t.abbot_photo
+    ? `<img class="modal-abbot-img" src="${esc(t.abbot_photo)}" alt="เจ้าอาวาส" onerror="this.outerHTML='<div class=\\'modal-abbot-img\\'>${personSVG.replace(/"/g,"'")}</div>'">`
+    : `<div class="modal-abbot-img">${personSVG}</div>`;
+
+  // ── Social links ──
+  const socialDefs = [
+    { key:"facebook",  cls:"social-fb",  label:"Facebook",
+      icon:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>` },
+    { key:"line",      cls:"social-line", label:"LINE",
+      icon:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.88 10.34C21.88 5.63 17.17 2 11.44 2S1 5.63 1 10.34c0 4.27 3.79 7.85 8.91 8.53.35.07.82.23.94.52.11.27.07.69.03.96l-.15.91c-.04.27-.21 1.07.94.58 1.14-.48 6.17-3.63 8.42-6.22A7.56 7.56 0 0 0 21.88 10.34z"/></svg>` },
+    { key:"youtube",   cls:"social-yt",  label:"YouTube",
+      icon:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.95C5.12 20 12 20 12 20s6.88 0 8.59-.47a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02V8.98L15.5 12z"/></svg>` },
+    { key:"instagram", cls:"social-ig",  label:"Instagram",
+      icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>` },
+    { key:"website",   cls:"social-web", label:"เว็บไซต์",
+      icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>` },
+  ];
+  const socialHTML = socialDefs.filter(s => t[s.key]).map(s =>
+    `<a href="${esc(t[s.key])}" target="_blank" rel="noopener" class="social-btn ${s.cls}" title="${s.label}">${s.icon}<span>${s.label}</span></a>`
+  ).join("");
+
+  // ── Info cards ──
+  const infoCards = [
+    addr && `<div class="modal-info-card">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <div><span class="info-label">ที่อยู่</span><span class="info-val">${esc(addr)}</span></div>
+    </div>`,
+    t.phone && `<div class="modal-info-card">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13 1 .37 1.96.72 2.88a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.2-1.29a2 2 0 0 1 2.11-.45c.92.35 1.88.59 2.88.72A2 2 0 0 1 22 16.92z"/></svg>
+      <div><span class="info-label">โทรศัพท์</span><a class="info-val" href="tel:${esc(String(t.phone).replace(/\s/g,""))}">${esc(t.phone)}</a></div>
+    </div>`,
+    t.website && `<div class="modal-info-card">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <div><span class="info-label">เว็บไซต์</span><a class="info-val" href="${esc(t.website)}" target="_blank" rel="noopener">${esc(t.website.replace(/^https?:\/\//,""))}</a></div>
+    </div>`,
+  ].filter(Boolean).join("");
 
   $("#detailModal").innerHTML = `
     <button class="modal-close" data-close="detailOverlay" aria-label="ปิด">✕</button>
+
     <div class="modal-hero">
-      ${abbotPhoto}
+      ${abbotEl}
       <div class="modal-temple">${esc(t.name)}</div>
-      ${t.country ? `<div class="modal-country">${esc(t.country)}</div>` : ""}
+      ${t.country ? `<div class="modal-country-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:12px;height:12px"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        ${esc(t.country)}</div>` : ""}
       ${t.abbot ? `<div class="modal-abbot-label">เจ้าอาวาส</div><div class="modal-abbot-name">${esc(t.abbot)}</div>` : ""}
     </div>
+
     <div class="modal-body">
+      ${infoCards ? `<div class="modal-info-grid">${infoCards}</div>` : ""}
+      ${socialHTML ? `<div class="modal-socials">${socialHTML}</div>` : ""}
+
+      ${murl ? `<a href="${esc(murl)}" target="_blank" rel="noopener" class="map-btn">
+        <svg class="map-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        นำทางไปวัด
+        <svg class="map-btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>` : ""}
+
       <div class="section-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         พระประจำวัด
@@ -153,6 +203,7 @@ function openDetail(id) {
         ${monks.length ? monks.map(m => `<div class="monk-item"><span class="dot"></span>${esc(m)}</div>`).join("")
           : `<div class="no-events">— ยังไม่มีข้อมูลรายชื่อพระ —</div>`}
       </div>
+
       <div class="event-head">
         <div class="section-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
@@ -291,7 +342,27 @@ function _showForm(t, isNew) {
       </div>
       <div class="form-field span-2">
         <label>URL Google Maps (ถ้าไม่ระบุจะสร้างจากที่อยู่อัตโนมัติ)</label>
-        <input id="af_map_url" type="text" value="${esc(t.map_url)}" placeholder="https://maps.google.com/...">
+        <input id="af_map_url" type="text" value="${esc(t.map_url||'')}" placeholder="https://maps.google.com/...">
+      </div>
+      <div class="form-field span-2">
+        <label>เว็บไซต์วัด</label>
+        <input id="af_website" type="text" value="${esc(t.website||'')}" placeholder="https://...">
+      </div>
+      <div class="form-field">
+        <label>Facebook</label>
+        <input id="af_facebook" type="text" value="${esc(t.facebook||'')}" placeholder="https://facebook.com/...">
+      </div>
+      <div class="form-field">
+        <label>LINE</label>
+        <input id="af_line" type="text" value="${esc(t.line||'')}" placeholder="https://line.me/...">
+      </div>
+      <div class="form-field">
+        <label>YouTube</label>
+        <input id="af_youtube" type="text" value="${esc(t.youtube||'')}" placeholder="https://youtube.com/...">
+      </div>
+      <div class="form-field">
+        <label>Instagram</label>
+        <input id="af_instagram" type="text" value="${esc(t.instagram||'')}" placeholder="https://instagram.com/...">
       </div>
       <input type="hidden" id="af_id" value="${esc(t.id)}">
     </div>
@@ -322,6 +393,11 @@ function saveTemple(isNew) {
     phone:       $("#af_phone").value.trim(),
     monks:       $("#af_monks").value.trim(),
     monk_count:  $("#af_monk_count").value.trim(),
+    website:     $("#af_website").value.trim(),
+    facebook:    $("#af_facebook").value.trim(),
+    line:        $("#af_line").value.trim(),
+    youtube:     $("#af_youtube").value.trim(),
+    instagram:   $("#af_instagram").value.trim(),
   };
 
   if (isNew) {
