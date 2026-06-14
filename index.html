@@ -13,7 +13,7 @@
 
 <!-- ปุ่มเครื่องมือมุมขวาบน -->
 <div class="toolbar">
-  <button class="tool-btn" id="adminBtn" title="โหมดแอดมิน" aria-label="โหมดแอดมิน">
+  <button class="tool-btn" id="adminBtn" title="หลังบ้านแอดมิน" aria-label="หลังบ้านแอดมิน">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
   </button>
   <button class="tool-btn" id="themeBtn" title="สลับโหมดมืด/สว่าง" aria-label="สลับโหมด">
@@ -64,27 +64,25 @@
   <span class="result-count" id="metaLine"></span>
 </div>
 
-<!-- การ์ดวัด -->
+<!-- กริดการ์ดวัด -->
 <main class="grid" id="grid">
   <div class="loader"><div class="spinner"></div>กำลังโหลดข้อมูลวัด…</div>
 </main>
 
-<footer>
-  วัดพระธรรมกายในทวีปยุโรป © 2026
-</footer>
+<footer>วัดพระธรรมกายในทวีปยุโรป © 2026</footer>
 
-<!-- โมดัลรายละเอียดวัด -->
+<!-- ── โมดัลรายละเอียดวัด ── -->
 <div class="overlay" id="detailOverlay">
   <div class="modal" id="detailModal"></div>
 </div>
 
-<!-- โมดัลล็อกอินแอดมิน -->
+<!-- ── โมดัลล็อกอิน ── -->
 <div class="overlay" id="loginOverlay">
   <div class="modal">
     <button class="modal-close" data-close="loginOverlay" aria-label="ปิด">✕</button>
     <div class="modal-pad">
-      <h3>เข้าสู่โหมดแอดมิน</h3>
-      <p class="hint">ใส่รหัสผ่านเพื่อเพิ่ม แก้ไข หรือลบงานบุญของวัด</p>
+      <h3>เข้าสู่ระบบแอดมิน</h3>
+      <p class="hint">ใส่รหัสผ่านเพื่อจัดการข้อมูลวัดและงานบุญ</p>
       <div class="form-field">
         <label for="pwInput">รหัสผ่าน</label>
         <input type="password" id="pwInput" placeholder="••••••••" autocomplete="off">
@@ -97,7 +95,7 @@
   </div>
 </div>
 
-<!-- โมดัลฟอร์มงานบุญ -->
+<!-- ── โมดัลฟอร์มงานบุญ ── -->
 <div class="overlay" id="eventOverlay">
   <div class="modal">
     <button class="modal-close" data-close="eventOverlay" aria-label="ปิด">✕</button>
@@ -105,8 +103,8 @@
       <h3 id="eventFormTitle">เพิ่มงานบุญ</h3>
       <p class="hint" id="eventFormHint"></p>
       <div class="form-field">
-        <label for="evDate">วันที่ (เช่น ๑๕ พ.ค. ๒๕๖๙ หรือ 2026-05-15)</label>
-        <input type="text" id="evDate" placeholder="วันที่จัดงาน">
+        <label for="evDate">วันที่</label>
+        <input type="text" id="evDate" placeholder="เช่น 15 พ.ค. 2569">
       </div>
       <div class="form-field">
         <label for="evTitle">ชื่องานบุญ</label>
@@ -124,15 +122,49 @@
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- ── หน้าหลังบ้านแอดมิน ── -->
+<div class="overlay" id="adminOverlay">
+  <div class="admin-panel">
 
+    <!-- Sidebar รายการวัด -->
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-head">
+        <span class="admin-sidebar-title">จัดการวัด</span>
+        <button class="btn sm primary" onclick="newTempleForm()">+ เพิ่ม</button>
+      </div>
+      <div class="admin-search-wrap">
+        <input type="text" class="admin-search" id="adminSearch" placeholder="ค้นหาวัด…" oninput="renderAdminList(this.value)">
+      </div>
+      <div class="admin-list" id="adminList"></div>
+      <div class="admin-sidebar-foot">
+        <button class="btn sm" onclick="adminLogout()">ออกจากระบบ</button>
+        <button class="btn sm" data-close="adminOverlay">ปิด</button>
+      </div>
+    </aside>
+
+    <!-- ฟอร์มแก้ไข -->
+    <div class="admin-main">
+      <div class="admin-main-head">
+        <span id="adminFormTitle" class="admin-main-title">เลือกวัดจากรายการ</span>
+        <div id="adminHeadActions" class="admin-head-actions"></div>
+      </div>
+      <div class="admin-main-body" id="adminFormBody">
+        <div class="admin-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;opacity:.3;margin-bottom:14px"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>
+          <p>เลือกวัดจากรายการด้านซ้าย<br>หรือกด <strong>+ เพิ่ม</strong> เพื่อเพิ่มวัดใหม่</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 <button class="scroll-top" id="scrollTop" title="ขึ้นบนสุด" aria-label="ขึ้นบนสุด">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>
 
-<!-- โหลด config และข้อมูล แล้วจึงโหลดสคริปต์หลัก -->
-<script src="config.js"></script>
-<script src="data.js"></script>
-<script src="app.js"></script>
+<script src="config.js?v=2"></script>
+<script src="data.js?v=2"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
