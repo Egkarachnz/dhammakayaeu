@@ -1,57 +1,73 @@
 /**
  * ============================================================
- * Google Apps Script — ระบบเพิ่ม/แก้ไข/ลบ "งานบุญ" จากหน้าเว็บ
+ * Google Apps Script — ฐานข้อมูลคลาวด์ของเว็บ (Google Sheets)
  * ============================================================
- * ใช้คู่กับเว็บ index.html (ตัวเลือกเสริม — ถ้าไม่ใช้ ก็แก้งานบุญ
- * ใน Google Sheets โดยตรงได้เลย)
+ * เก็บทั้ง "วัด" และ "งานบุญ" ไว้ใน Google Sheets เดียว
+ * ข้อมูลจะอยู่ถาวร ไม่หายแม้จะอัปเดตโค้ดเว็บกี่เวอร์ชั่นก็ตาม
  *
- * วิธีติดตั้ง:
- * 1) เปิด Google Sheet ของคุณ → เมนู Extensions → Apps Script
- * 2) ลบโค้ดเดิมทิ้ง แล้ววางโค้ดนี้แทน
- * 3) แก้ SECRET ให้ตรงกับ ADMIN_PASSWORD ในไฟล์ index.html
- * 4) กด Deploy → New deployment → ประเภท "Web app"
+ * ── วิธีติดตั้ง (ทำครั้งเดียว) ──
+ * 1) สร้าง Google Sheet ใหม่ 1 ไฟล์ (ตั้งชื่ออะไรก็ได้)
+ * 2) เมนู Extensions → Apps Script
+ * 3) ลบโค้ดเดิมทั้งหมด แล้ววางโค้ดนี้แทน → กดบันทึก (💾)
+ * 4) แก้ SECRET ด้านล่างให้ตรงกับ ADMIN_PASSWORD ใน config.js
+ * 5) กด Deploy → New deployment → เลือกชนิด "Web app"
  *      - Execute as: Me
  *      - Who has access: Anyone
- * 5) คัดลอกลิงก์ที่ลงท้ายด้วย /exec มาวางใน CONFIG.ADMIN_URL ของเว็บ
+ * 6) กด Deploy แล้วคัดลอกลิงก์ที่ลงท้ายด้วย /exec
+ * 7) นำลิงก์ไปวางใน CONFIG.DATA_URL ในไฟล์ config.js
  *
- * โครงสร้างชีต "Events" (แถวแรกเป็นหัวคอลัมน์):
- *   id | temple_id | date | title | description
+ * แท็บชีตจะถูกสร้างให้อัตโนมัติเมื่อมีการบันทึกครั้งแรก
+ * (ชีต "Temples" และ "Events") — แก้ในชีตโดยตรงก็ได้
  * ============================================================
  */
 
-const SECRET = "dhamma2569";      // <<< ต้องตรงกับ ADMIN_PASSWORD ในเว็บ
-const SHEET_NAME = "Events";       // ชื่อชีตงานบุญ
+const SECRET = "dhamma2569";   // <<< ต้องตรงกับ ADMIN_PASSWORD ใน config.js
 
+const TEMPLE_SHEET = "Temples";
+const EVENT_SHEET  = "Events";
+
+const TEMPLE_COLS = [
+  "id", "name", "country", "abbot", "abbot_photo", "logo", "address",
+  "map_url", "phone", "monks", "monk_count", "website",
+  "facebook", "line", "youtube", "instagram"
+];
+const EVENT_COLS = ["id", "temple_id", "date", "title", "description"];
+
+/** ── อ่านข้อมูลทั้งหมด (เว็บเรียกตอนโหลดหน้า) ── */
+function doGet() {
+  return out({
+    ok: true,
+    temples: readSheet(TEMPLE_SHEET, TEMPLE_COLS),
+    events:  readSheet(EVENT_SHEET,  EVENT_COLS),
+  });
+}
+
+/** ── เพิ่ม / แก้ไข / ลบ (เว็บเรียกตอนแอดมินบันทึก) ── */
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
+    if (data.secret !== SECRET) return out({ ok: false, error: "unauthorized" });
 
-    // ตรวจรหัสผ่าน
-    if (data.secret !== SECRET) {
-      return out({ ok: false, error: "unauthorized" });
+    const cfg = data.type === "event"
+      ? { name: EVENT_SHEET,  cols: EVENT_COLS }
+      : { name: TEMPLE_SHEET, cols: TEMPLE_COLS };
+
+    const sheet = getSheet(cfg.name, cfg.cols);
+
+    if (data.action === "save") {
+      upsert(sheet, cfg.cols, data.item || {});
+      return out({ ok: true, action: "save", id: (data.item || {}).id });
     }
 
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    const ev = data.event || {};
-
-    if (data.action === "add") {
-      sheet.appendRow([ev.id, ev.temple_id, ev.date, ev.title, ev.description]);
-      return out({ ok: true, action: "add", id: ev.id });
-    }
-
-    if (data.action === "edit") {
-      const row = findRowById(sheet, ev.id);
-      if (row < 0) return out({ ok: false, error: "not found" });
-      sheet.getRange(row, 1, 1, 5)
-           .setValues([[ev.id, ev.temple_id, ev.date, ev.title, ev.description]]);
-      return out({ ok: true, action: "edit", id: ev.id });
+    if (data.action === "bulkSave") {
+      (data.items || []).forEach(item => upsert(sheet, cfg.cols, item));
+      return out({ ok: true, action: "bulkSave", count: (data.items || []).length });
     }
 
     if (data.action === "delete") {
-      const row = findRowById(sheet, ev.id);
-      if (row < 0) return out({ ok: false, error: "not found" });
-      sheet.deleteRow(row);
-      return out({ ok: true, action: "delete", id: ev.id });
+      const row = findRowById(sheet, (data.item || {}).id);
+      if (row > 0) sheet.deleteRow(row);
+      return out({ ok: true, action: "delete", id: (data.item || {}).id });
     }
 
     return out({ ok: false, error: "unknown action" });
@@ -60,22 +76,51 @@ function doPost(e) {
   }
 }
 
-/** หาเลขแถวจากค่าในคอลัมน์ id (คอลัมน์ A) */
+/** เพิ่มแถวใหม่ หรือทับแถวเดิมถ้ามี id ตรงกัน */
+function upsert(sheet, cols, item) {
+  const values = cols.map(c => (item[c] != null ? item[c] : ""));
+  const row = findRowById(sheet, item.id);
+  if (row > 0) sheet.getRange(row, 1, 1, cols.length).setValues([values]);
+  else sheet.appendRow(values);
+}
+
+/** หาเลขแถวจาก id (คอลัมน์ A) — คืน -1 ถ้าไม่พบ */
 function findRowById(sheet, id) {
-  const ids = sheet.getRange(1, 1, sheet.getLastRow(), 1).getValues();
-  for (let i = 1; i < ids.length; i++) {           // เริ่มที่ 1 เพื่อข้ามหัวคอลัมน์
-    if (String(ids[i][0]) === String(id)) return i + 1;
+  if (sheet.getLastRow() < 2) return -1;
+  const ids = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  for (let i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]) === String(id)) return i + 2;
   }
   return -1;
+}
+
+/** อ่านทั้งชีตเป็น array ของ object (อิงชื่อหัวคอลัมน์) */
+function readSheet(name, cols) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  const grid   = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
+  const header = grid[0].map(h => String(h).trim());
+  return grid.slice(1)
+    .filter(r => String(r[0]).trim() !== "")
+    .map(r => {
+      const o = {};
+      header.forEach((h, i) => { o[h] = r[i] == null ? "" : r[i]; });
+      cols.forEach(c => { if (o[c] == null) o[c] = ""; });
+      return o;
+    });
+}
+
+/** คืนชีต ถ้ายังไม่มีจะสร้างพร้อมหัวคอลัมน์ */
+function getSheet(name, cols) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) { sheet = ss.insertSheet(name); sheet.appendRow(cols); }
+  else if (sheet.getLastRow() === 0) { sheet.appendRow(cols); }
+  return sheet;
 }
 
 function out(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
-}
-
-/** ใช้ทดสอบว่า Web App ทำงานหรือไม่ (เปิดลิงก์ /exec ในเบราว์เซอร์) */
-function doGet() {
-  return out({ ok: true, message: "Temple events endpoint is running." });
 }

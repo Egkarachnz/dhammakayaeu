@@ -5,6 +5,9 @@ let TEMPLES = [], EVENTS = [], isAdmin = false, currentTemple = null, editingEve
 let activeCountry = "ทั้งหมด", searchQuery = "", sortBy = "default";
 
 const STORAGE_KEY = "dhammakaya-temples-v1";
+const EVENTS_KEY  = "dhammakaya-events-v1";
+const CLOUD_URL   = (typeof CONFIG !== "undefined" && CONFIG.DATA_URL) ? String(CONFIG.DATA_URL).trim() : "";
+let cloudOK = false;
 
 /* ── Country flags ── */
 const FLAGS = {
@@ -34,23 +37,91 @@ function toast(msg, isErr) {
 }
 
 /* ============================================================
-   Data — prefer localStorage over data.js
+   Data layer
+   ลำดับความสำคัญของแหล่งข้อมูล:
+     1) คลาวด์ (Google Sheets ผ่าน CONFIG.DATA_URL) — ถาวร แชร์ทุกอุปกรณ์
+     2) แคชในเครื่อง (localStorage) — ใช้ตอนออฟไลน์/โหลดทันที
+     3) ค่าเริ่มต้นจาก data.js — ใช้ครั้งแรกสุด
    ============================================================ */
-function loadData() {
-  let stored = null;
-  try { stored = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) {}
-
-  if (stored && Array.isArray(stored) && stored.length) {
-    TEMPLES = stored.filter(t => t.name);
-  } else {
-    TEMPLES = (typeof DATA_TEMPLES !== "undefined") ? DATA_TEMPLES.filter(t => t.name) : [];
-  }
-  EVENTS = (typeof DATA_EVENTS !== "undefined") ? DATA_EVENTS : [];
-  render();
+function readCache(key) {
+  try { const v = JSON.parse(localStorage.getItem(key)); if (Array.isArray(v)) return v; } catch(e) {}
+  return null;
 }
-
 function saveTemplesToStorage() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(TEMPLES)); } catch(e) {}
+}
+function saveEventsToStorage() {
+  try { localStorage.setItem(EVENTS_KEY, JSON.stringify(EVENTS)); } catch(e) {}
+}
+
+async function loadData() {
+  // 1) วาดหน้าทันทีจากแคชหรือค่าเริ่มต้น (ไม่ต้องรอเน็ต)
+  const cachedT = readCache(STORAGE_KEY);
+  const cachedE = readCache(EVENTS_KEY);
+  TEMPLES = (cachedT && cachedT.length) ? cachedT.filter(t => t.name)
+          : (typeof DATA_TEMPLES !== "undefined" ? DATA_TEMPLES.filter(t => t.name) : []);
+  EVENTS  = cachedE || (typeof DATA_EVENTS !== "undefined" ? DATA_EVENTS : []);
+  render();
+
+  // 2) ถ้าตั้งค่าคลาวด์ไว้ → ดึงข้อมูลล่าสุดมาทับ แล้วบันทึกแคช
+  if (CLOUD_URL) {
+    try {
+      const res  = await fetch(CLOUD_URL, { method: "GET" });
+      const data = await res.json();
+      if (data && data.ok) {
+        if (Array.isArray(data.temples)) { TEMPLES = data.temples.filter(t => t.name); saveTemplesToStorage(); }
+        if (Array.isArray(data.events))  { EVENTS  = data.events;  saveEventsToStorage(); }
+        cloudOK = true;
+        render();
+      } else { cloudOK = false; }
+    } catch (e) { cloudOK = false; }
+    setCloudStatus();
+  }
+}
+
+/* ส่งคำสั่งบันทึก/ลบ ไปยังคลาวด์
+   ใช้ Content-Type: text/plain เพื่อเลี่ยง CORS preflight ของ Apps Script */
+async function cloudSend(type, action, payload) {
+  if (!CLOUD_URL) return { ok: true, local: true };
+  const body = Object.assign({ secret: CONFIG.ADMIN_PASSWORD, type, action }, payload);
+  const res  = await fetch(CLOUD_URL, {
+    method:  "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body:    JSON.stringify(body),
+  });
+  return await res.json();
+}
+
+/* แสดงสถานะการเชื่อมต่อฐานข้อมูลในหลังบ้าน */
+function setCloudStatus() {
+  const el = $("#cloudStatus");
+  if (!el) return;
+  if (!CLOUD_URL) {
+    el.className = "cloud-status warn";
+    el.innerHTML = `<span class="cs-dot"></span><span>ยังไม่ได้ตั้งค่าคลาวด์ — ข้อมูลเก็บในเครื่องนี้เท่านั้น</span>`;
+  } else if (cloudOK) {
+    el.className = "cloud-status ok";
+    el.innerHTML = `<span class="cs-dot"></span><span>เชื่อมต่อฐานข้อมูลคลาวด์แล้ว</span>
+      <button class="cs-sync" onclick="seedToCloud()" title="อัปโหลดข้อมูลทั้งหมดในหน้านี้ขึ้นคลาวด์">⤴ อัปโหลดทั้งหมด</button>`;
+  } else {
+    el.className = "cloud-status err";
+    el.innerHTML = `<span class="cs-dot"></span><span>เชื่อมต่อคลาวด์ไม่สำเร็จ — ใช้ข้อมูลในเครื่องชั่วคราว</span>`;
+  }
+}
+
+/* อัปโหลดข้อมูลทั้งหมดในหน้านี้ขึ้นคลาวด์ครั้งเดียว (ใช้ตอนตั้งค่าครั้งแรก) */
+async function seedToCloud() {
+  if (!CLOUD_URL) { toast("ยังไม่ได้ตั้งค่า DATA_URL ใน config.js", true); return; }
+  if (!confirm(`อัปโหลดวัด ${TEMPLES.length} แห่ง และงานบุญ ${EVENTS.length} รายการ ขึ้นคลาวด์?`)) return;
+  toast("กำลังอัปโหลดขึ้นคลาวด์…");
+  try {
+    await cloudSend("temple", "bulkSave", { items: TEMPLES });
+    if (EVENTS.length) await cloudSend("event", "bulkSave", { items: EVENTS });
+    cloudOK = true; setCloudStatus();
+    toast(`อัปโหลดสำเร็จ 🙏 (${TEMPLES.length} วัด)`);
+  } catch (e) {
+    toast("อัปโหลดไม่สำเร็จ ลองใหม่อีกครั้ง", true);
+  }
 }
 
 /* ============================================================
@@ -121,7 +192,6 @@ function cardHTML(t) {
     : `<span style="color:var(--text-mut);font-style:italic">—</span>`;
 
   return `<article class="card" onclick="openDetail('${esc(t.id)}')">
-    <div class="card-bar"></div>
     <div class="card-inner">
       <div class="card-head">
         <div class="card-logo">${logoInner}</div>
@@ -303,7 +373,7 @@ function adminLogout() {
    Admin panel
    ============================================================ */
 function openAdmin() {
-  renderAdminList(""); openOverlay("adminOverlay");
+  renderAdminList(""); setCloudStatus(); openOverlay("adminOverlay");
 }
 
 function renderAdminList(filter) {
@@ -419,7 +489,7 @@ function _showForm(t, isNew) {
   setTimeout(() => $("#af_name").focus(), 80);
 }
 
-function saveTemple(isNew) {
+async function saveTemple(isNew) {
   const name = $("#af_name").value.trim();
   if (!name) { toast("กรุณากรอกชื่อวัด", true); $("#af_name").focus(); return; }
 
@@ -442,13 +512,12 @@ function saveTemple(isNew) {
     instagram:   $("#af_instagram").value.trim(),
   };
 
+  // อัปเดตในหน้าทันที (optimistic) แล้วค่อยซิงก์ขึ้นคลาวด์
   if (isNew) {
     TEMPLES.push(t);
-    toast("เพิ่มวัดใหม่แล้ว");
   } else {
     const idx = TEMPLES.findIndex(x => x.id === t.id);
     if (idx > -1) TEMPLES[idx] = t; else TEMPLES.push(t);
-    toast("บันทึกข้อมูลแล้ว");
   }
 
   saveTemplesToStorage();
@@ -459,14 +528,24 @@ function saveTemple(isNew) {
   document.querySelectorAll(".admin-item").forEach(el => el.classList.remove("active"));
   const el = document.querySelector(`.admin-item[data-id="${t.id}"]`);
   if (el) el.classList.add("active");
+
+  // ซิงก์ขึ้นคลาวด์
+  try {
+    const r = await cloudSend("temple", "save", { item: t });
+    if (r && r.ok) toast(CLOUD_URL ? "บันทึกขึ้นคลาวด์แล้ว ✓" : "บันทึกข้อมูลแล้ว");
+    else toast("บันทึกขึ้นคลาวด์ไม่สำเร็จ (เก็บในเครื่องไว้ก่อน)", true);
+  } catch (e) {
+    toast("ออฟไลน์: เก็บในเครื่องไว้ก่อน จะซิงก์เมื่อกลับมาออนไลน์", true);
+  }
 }
 
-function deleteTemple(id) {
+async function deleteTemple(id) {
   const t = TEMPLES.find(x => x.id === id);
   if (!t) return;
   if (!confirm(`ต้องการลบ "${t.name}" ใช่หรือไม่?\n(การดำเนินการนี้ไม่สามารถยกเลิกได้)`)) return;
   TEMPLES = TEMPLES.filter(x => x.id !== id);
   saveTemplesToStorage();
+  try { await cloudSend("temple", "delete", { item: { id } }); } catch (e) {}
   render();
   renderAdminList($("#adminSearch").value);
   $("#adminFormTitle").textContent = "เลือกวัดจากรายการ";
@@ -492,7 +571,7 @@ function openEventForm(ev) {
   openOverlay("eventOverlay"); setTimeout(() => $("#evDate").focus(), 100);
 }
 
-function saveEvent() {
+async function saveEvent() {
   const title = $("#evTitle").value.trim();
   if (!title) { toast("กรุณากรอกชื่องานบุญ", true); return; }
   const payload = {
@@ -502,16 +581,23 @@ function saveEvent() {
     title, description: $("#evDesc").value.trim(),
   };
   if (editingEvent) {
-    const i = EVENTS.findIndex(e => e.id === payload.id); if (i > -1) EVENTS[i] = payload;
+    const i = EVENTS.findIndex(e => e.id === payload.id); if (i > -1) EVENTS[i] = payload; else EVENTS.push(payload);
   } else {
     EVENTS.push(payload);
   }
-  closeOverlay("eventOverlay"); openDetail(currentTemple.id); toast("บันทึกงานบุญแล้ว");
+  saveEventsToStorage();
+  closeOverlay("eventOverlay"); openDetail(currentTemple.id);
+  try {
+    const r = await cloudSend("event", "save", { item: payload });
+    toast(r && r.ok ? "บันทึกงานบุญแล้ว" : "บันทึกขึ้นคลาวด์ไม่สำเร็จ", !(r && r.ok));
+  } catch (e) { toast("เก็บงานบุญในเครื่องไว้ก่อน", true); }
 }
 
-function deleteEvent(id) {
+async function deleteEvent(id) {
   if (!confirm("ต้องการลบงานบุญนี้ใช่หรือไม่?")) return;
   EVENTS = EVENTS.filter(e => e.id !== id);
+  saveEventsToStorage();
+  try { await cloudSend("event", "delete", { item: { id } }); } catch (e) {}
   openDetail(currentTemple.id); toast("ลบงานบุญแล้ว");
 }
 
@@ -550,8 +636,8 @@ function toggleTheme() {
    Init
    ============================================================ */
 (function init() {
-  let saved = "dark";
-  try { saved = localStorage.getItem("temple-theme") || "dark"; } catch(e) {}
+  let saved = "light";
+  try { saved = localStorage.getItem("temple-theme") || "light"; } catch(e) {}
   applyTheme(saved);
 
   $("#themeBtn").onclick   = toggleTheme;
