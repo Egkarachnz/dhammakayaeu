@@ -55,24 +55,37 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:
   opacity:.12;pointer-events:none;z-index:0;
 }
 [data-theme="light"] .hero-stars{opacity:.16}
-.hero-inner{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto}
-.emblem{width:56px;height:56px;margin:0 auto 14px;display:block;filter:drop-shadow(0 4px 14px var(--glow))}
+.hero-inner{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto;display:flex;flex-direction:column;align-items:center}
+.emblem{width:56px;height:56px;margin:0 0 14px;display:block;filter:drop-shadow(0 4px 14px var(--glow))}
 .emblem .ray{stroke:var(--gold);opacity:.55}
 .emblem .core{fill:var(--gold)}
 .emblem .lotus{fill:none;stroke:var(--gold);stroke-width:3}
 .title{font-weight:700;font-size:clamp(1.7rem,4.4vw,2.6rem);letter-spacing:.2px;line-height:1.2}
 .subtitle{color:var(--text-dim);font-size:1rem;margin-top:6px;font-weight:300}
 
-/* นาฬิกาในฮีโร่ — ไม่มีกรอบ */
+/* นาฬิกาในฮีโร่ — แคปซูลโปร่งแสง */
 .hero-clock{
-  display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:center;
-  margin-top:18px;color:var(--text-dim);font-size:.9rem;
+  display:inline-flex;align-items:center;gap:14px;
+  margin-top:20px;padding:10px 10px 10px 16px;border-radius:999px;
+  background:var(--hero-stat-bg);border:1px solid var(--border-2);
+  box-shadow:0 6px 22px var(--shadow);
 }
-.hero-clock>svg{width:17px;height:17px;color:var(--gold);flex-shrink:0}
-.hc-time{font-weight:700;font-size:1.12rem;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:.5px}
-.hc-dot{color:var(--text-mut)}
-.hc-date{color:var(--text-dim)}
-.hc-tz{color:var(--text-mut);font-style:italic;font-size:.82rem}
+.hc-live{
+  width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;
+  box-shadow:0 0 0 0 rgba(52,211,153,.6);animation:livePulse 2s ease-out infinite;
+}
+@keyframes livePulse{
+  0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}
+  70%{box-shadow:0 0 0 9px rgba(52,211,153,0)}
+  100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}
+}
+.hc-main{display:inline-flex;align-items:center;gap:8px}
+.hc-icon{width:18px;height:18px;color:var(--gold);flex-shrink:0}
+.hc-time{font-weight:800;font-size:1.18rem;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1}
+.hc-div{width:1px;height:26px;background:var(--border-2);flex-shrink:0}
+.hc-side{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding-right:8px}
+.hc-date{color:var(--text);font-size:.84rem;font-weight:500;line-height:1.2}
+.hc-tz{color:var(--text-mut);font-size:.72rem;line-height:1.2}
 
 /* สถิติ */
 .hero-stats{
@@ -102,28 +115,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:
 .select-wrap>svg{position:absolute;right:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-dim);pointer-events:none}
 .country-select{appearance:none;-webkit-appearance:none;padding:13px 38px 13px 16px;border-radius:13px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:.92rem;cursor:pointer;min-width:170px;transition:.2s}
 .country-select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(45,127,249,.18)}
-
-/* ── FILTER CHIPS (ประเทศ + ธง + จำนวน) ── */
-.filter-chips{
-  position:relative;z-index:1;max-width:var(--maxw);margin:16px auto 0;padding:0 20px;
-  display:flex;gap:9px;flex-wrap:wrap;
-}
-.chip{
-  display:inline-flex;align-items:center;gap:7px;
-  padding:7px 14px;border-radius:999px;cursor:pointer;
-  border:1px solid var(--border-2);background:var(--surface);
-  color:var(--text-dim);font-family:inherit;font-size:.86rem;font-weight:500;
-  transition:.18s;white-space:nowrap;
-}
-.chip:hover{border-color:var(--gold);color:var(--text);transform:translateY(-1px)}
-.chip-count{
-  font-size:.74rem;font-weight:700;padding:1px 7px;border-radius:999px;
-  background:var(--surface-3);color:var(--text-dim);
-}
-.chip.active{background:var(--blue);border-color:var(--blue);color:#fff}
-.chip.active .chip-count{background:rgba(255,255,255,.22);color:#fff}
-.chip-more{border-style:dashed;color:var(--text-dim);font-weight:600}
-.chip-more:hover{border-color:var(--blue);color:var(--blue)}
 
 /* ── RESULT BAR ── */
 .result-bar{position:relative;z-index:1;max-width:var(--maxw);margin:18px auto 0;padding:0 20px}
@@ -383,8 +374,10 @@ footer{
 }
 .footer-top{max-width:var(--maxw);margin:0 auto;padding:46px 20px 34px}
 .footer-inner{
-  display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:40px;align-items:start;
+  display:grid;grid-template-columns:1fr auto;gap:48px;align-items:start;
 }
+.footer-inner .footer-col:last-child{justify-self:end;text-align:right}
+.footer-inner .footer-col:last-child .footer-socials{justify-content:flex-end}
 .footer-col{min-width:0}
 .footer-brand{display:flex;gap:16px;align-items:flex-start}
 .footer-emblem{width:48px;height:48px;flex-shrink:0}
@@ -450,14 +443,9 @@ footer{
 @media(min-width:1600px){:root{--maxw:1440px}}
 @media(min-width:2100px){:root{--maxw:1680px}}
 
-@media(max-width:860px){
-  .footer-inner{grid-template-columns:1fr 1fr;gap:32px}
-  .footer-brand{grid-column:1/-1}
-}
-
 @media(max-width:768px){
   .hero{padding:46px 16px 32px}
-  .controls,.grid,.filter-chips,.result-bar{padding-left:16px;padding-right:16px}
+  .controls,.grid,.result-bar{padding-left:16px;padding-right:16px}
   .modal-hero{padding:28px 20px 22px}
   .modal-body,.modal-pad{padding-left:20px;padding-right:20px}
   .admin-panel{flex-direction:column;height:95vh}
@@ -471,15 +459,14 @@ footer{
   .hero{padding-top:60px}
   .hero-stats{gap:20px;padding:14px 22px}
   .hstat-num{font-size:1.8rem}
-  .hc-tz{display:none}
   /* ค้นหาเต็มแถว แล้วดรอปดาวน์สองอันแชร์แถวถัดไป */
   .controls{gap:10px}
   .search-wrap{flex:1 0 100%;width:100%}
   .select-wrap{flex:1 1 0;min-width:0}
   .country-select{width:100%;min-width:0}
-  .filter-chips{gap:7px}
-  .chip{font-size:.82rem;padding:6px 12px}
   .footer-inner{grid-template-columns:1fr;gap:28px}
+  .footer-inner .footer-col:last-child{justify-self:start;text-align:left}
+  .footer-inner .footer-col:last-child .footer-socials{justify-content:flex-start}
   .toolbar{top:12px;right:12px}
   .form-row{flex-direction:column-reverse}
   .form-row .btn{width:100%}

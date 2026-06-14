@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 
@@ -58,14 +58,18 @@
     <h1 class="title">วัดพระธรรมกายในทวีปยุโรป</h1>
     <p class="subtitle">รวมข้อมูลวัดและศูนย์ปฏิบัติธรรมในทวีปยุโรป</p>
 
-    <!-- นาฬิกาเวลาท้องถิ่น (ไม่มีกรอบ) -->
+    <!-- นาฬิกาเวลาท้องถิ่น -->
     <div class="hero-clock">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      <span class="hc-time" id="clockTime">--:--:--</span>
-      <span class="hc-dot">·</span>
-      <span class="hc-date" id="clockDate"></span>
-      <span class="hc-dot">·</span>
-      <span class="hc-tz" id="clockTz"></span>
+      <span class="hc-live" aria-hidden="true"></span>
+      <div class="hc-main">
+        <svg class="hc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span class="hc-time" id="clockTime">--:--:--</span>
+      </div>
+      <span class="hc-div"></span>
+      <div class="hc-side">
+        <span class="hc-date" id="clockDate"></span>
+        <span class="hc-tz" id="clockTz"></span>
+      </div>
     </div>
 
     <!-- สถิติ -->
@@ -104,9 +108,6 @@
   </div>
 </div>
 
-<!-- ชิปลัดประเทศยอดนิยม (รายการเต็มอยู่ในดรอปดาวน์ด้านบน) -->
-<div class="filter-chips" id="filterChips"></div>
-
 <!-- จำนวนผลลัพธ์ -->
 <div class="result-bar"><span class="result-count" id="metaLine"></span></div>
 
@@ -135,11 +136,6 @@
           <div class="footer-tagline">Dhammakaya Temples &amp; Meditation Centres Across Europe</div>
           <p class="footer-desc">รวมข้อมูลวัดและศูนย์ปฏิบัติธรรมสายธรรมกายทั่วทวีปยุโรป เพื่อให้สาธุชนค้นหาวัดใกล้ตัวและร่วมงานบุญได้สะดวก</p>
         </div>
-      </div>
-
-      <div class="footer-col">
-        <div class="footer-col-title">ประเทศยอดนิยม</div>
-        <div class="footer-links" id="footerCountries"></div>
       </div>
 
       <div class="footer-col">
@@ -249,8 +245,8 @@
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>
 
-<script src="config.js?v=6"></script>
-<script src="data.js?v=6"></script>
-<script src="app.js?v=6"></script>
+<script src="config.js?v=7"></script>
+<script src="data.js?v=7"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

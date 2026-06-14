@@ -69,16 +69,6 @@ function countryCount(c) {
   return TEMPLES.filter(t => t.country === c).length;
 }
 
-/* เปลี่ยนประเทศที่กรอง (ใช้จากชิป + ลิงก์ฟุตเตอร์) */
-function setCountry(c) {
-  activeCountry = c;
-  render();
-}
-function quickFilter(c) {
-  setCountry(c);
-  document.querySelector(".controls")?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
 function render() {
   const countries = uniqueCountries();
   const byCount = countries.slice().sort((a, b) => countryCount(b) - countryCount(a) || a.localeCompare(b, "th"));
@@ -95,9 +85,6 @@ function render() {
       byCount.map(c => `<option value="${esc(c)}">${flag(c)}${esc(c)} (${countryCount(c)})</option>`).join("");
     sel.value = activeCountry;
   }
-
-  // ชิปลัด — เฉพาะประเทศยอดนิยม
-  renderChips(byCount);
 
   // กรอง
   const q = searchQuery.trim().toLowerCase();
@@ -121,26 +108,6 @@ function render() {
     return;
   }
   $("#grid").innerHTML = list.map(cardHTML).join("");
-}
-
-function renderChips(byCount) {
-  const el = $("#filterChips");
-  if (!el) return;
-  const TOP = 5; // จำนวนชิปลัด — ที่เหลือเลือกจากดรอปดาวน์
-  const chip = (val, label, count, active) =>
-    `<button class="chip${active ? " active" : ""}" onclick="setCountry('${esc(val).replace(/'/g, "\\'")}')">${label}<span class="chip-count">${count}</span></button>`;
-
-  const top = byCount.slice(0, TOP);
-  // ถ้าประเทศที่เลือกอยู่นอก TOP ให้เพิ่มชิปนั้นเข้ามาด้วยจะได้เห็นสถานะ active
-  if (activeCountry !== "ทั้งหมด" && !top.includes(activeCountry) && byCount.includes(activeCountry)) {
-    top.push(activeCountry);
-  }
-  const hidden = byCount.length - byCount.slice(0, TOP).length;
-
-  el.innerHTML =
-    chip("ทั้งหมด", "🌍 ทั้งหมด", TEMPLES.length, activeCountry === "ทั้งหมด") +
-    top.map(c => chip(c, `${flag(c)}${esc(c)}`, countryCount(c), activeCountry === c)).join("") +
-    (hidden > 0 ? `<button class="chip chip-more" onclick="document.getElementById('countrySelect').focus()">+${hidden} ประเทศ ▾</button>` : "");
 }
 
 function cardHTML(t) {
@@ -556,8 +523,8 @@ function updateClock() {
   const tz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const te = $("#clockTime"), de = $("#clockDate"), ze = $("#clockTz");
   if (te) te.textContent = now.toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false });
-  if (de) de.textContent = now.toLocaleDateString("th-TH", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
-  if (ze) ze.textContent = tz.replace(/_/g," ");
+  if (de) de.textContent = now.toLocaleDateString("th-TH", { weekday:"short", day:"numeric", month:"short", year:"numeric" });
+  if (ze) ze.textContent = "🌍 " + tz.replace(/_/g," ");
 }
 
 /* ============================================================
@@ -629,19 +596,5 @@ function toggleTheme() {
     if (note) note.style.display = links.length ? "none" : "block";
   }
 
-  loadData();          // ต้องโหลดข้อมูลก่อนจึงจะนับประเทศได้
-  renderFooterCountries();
+  loadData();
 })();
-
-/* ลิงก์ประเทศยอดนิยมในฟุตเตอร์ (เรียงตามจำนวนวัด) */
-function renderFooterCountries() {
-  const el = document.getElementById("footerCountries");
-  if (!el) return;
-  const top = uniqueCountries()
-    .slice()
-    .sort((a, b) => countryCount(b) - countryCount(a) || a.localeCompare(b, "th"))
-    .slice(0, 6);
-  el.innerHTML = top.map(c =>
-    `<button class="footer-link" onclick="quickFilter('${esc(c).replace(/'/g, "\\'")}')">${flag(c)}${esc(c)} <span class="fl-count">${countryCount(c)} วัด</span></button>`
-  ).join("");
-}
