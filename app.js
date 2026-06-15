@@ -250,9 +250,10 @@ function render() {
   else if (sortBy === "country") list = list.slice().sort((a, b) => (a.country || "").localeCompare(b.country || "", "th") || (a.name || "").localeCompare(b.name || "", "th"));
   else if (sortBy === "monks")   list = list.slice().sort((a, b) => countMonks(b) - countMonks(a));
 
-  $("#metaLine").innerHTML = activeCountry === "ทั้งหมด"
-    ? `พบ <strong style="color:var(--text)">${list.length}</strong> วัด`
-    : `พบ <strong style="color:var(--text)">${list.length}</strong> วัดใน ${flag(activeCountry)}${esc(activeCountry)}`;
+  const metaIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>`;
+  $("#metaLine").innerHTML = metaIcon + (activeCountry === "ทั้งหมด"
+    ? `พบ <strong>${list.length}</strong> วัด`
+    : `พบ <strong>${list.length}</strong> วัดใน ${flag(activeCountry)}${esc(activeCountry)}`);
 
   if (!list.length) {
     $("#grid").innerHTML = `<div class="empty">ไม่พบวัดที่ตรงกับเงื่อนไข</div>`;
@@ -509,6 +510,31 @@ function openTempleForm(id) {
 
 let editingGallery = [];
 
+/* ── ดรอปดาวน์ วัน/เดือน/ปี (เลือกง่าย ปีเป็น พ.ศ.) ── */
+const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+function dateSelectsHTML(established) {
+  let dY = "", dM = "", dD = "";
+  const m = String(established || "").match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) { dY = +m[1]; dM = +m[2]; dD = +m[3]; }
+  const now = new Date().getFullYear();
+  let days = "", months = "", years = "";
+  for (let d = 1; d <= 31; d++) days   += `<option value="${d}" ${d === dD ? "selected" : ""}>${d}</option>`;
+  for (let i = 1; i <= 12; i++) months += `<option value="${i}" ${i === dM ? "selected" : ""}>${THAI_MONTHS[i - 1]}</option>`;
+  for (let y = now; y >= 1950; y--) years += `<option value="${y}" ${y === dY ? "selected" : ""}>พ.ศ. ${y + 543}</option>`;
+  return `
+    <select id="af_est_day"   class="date-sel"><option value="">วัน</option>${days}</select>
+    <select id="af_est_month" class="date-sel"><option value="">เดือน</option>${months}</select>
+    <select id="af_est_year"  class="date-sel"><option value="">ปี (พ.ศ.)</option>${years}</select>`;
+}
+/* รวมค่าจากดรอปดาวน์เป็น YYYY-MM-DD (เลือกอย่างน้อยปีก็พอ) */
+function readEstablished() {
+  const y = $("#af_est_year")?.value;
+  if (!y) return "";
+  const mo = String($("#af_est_month").value || "1").padStart(2, "0");
+  const d  = String($("#af_est_day").value   || "1").padStart(2, "0");
+  return `${y}-${mo}-${d}`;
+}
+
 function _showForm(t, isNew) {
   editingGallery = splitList(t.gallery);
   // highlight active in sidebar
@@ -549,9 +575,9 @@ function _showForm(t, isNew) {
         <label>จำนวนพระ (ระบุตัวเลขหรือปล่อยว่าง)</label>
         <input id="af_monk_count" type="number" min="0" value="${esc(t.monk_count)}" placeholder="0">
       </div>
-      <div class="form-field">
+      <div class="form-field span-2">
         <label>วันที่สร้าง / เปิดวัด (ใช้คำนวณอายุวัด)</label>
-        <input id="af_established" type="date" value="${esc(t.established || '')}">
+        <div class="date-selects">${dateSelectsHTML(t.established)}</div>
       </div>
       <div class="form-field span-2">
         <label>ที่อยู่</label>
@@ -689,7 +715,7 @@ async function saveTemple(isNew) {
     phone:       $("#af_phone").value.trim(),
     monks:       $("#af_monks").value.trim(),
     monk_count:  $("#af_monk_count").value.trim(),
-    established: $("#af_established").value.trim(),
+    established: readEstablished(),
     history:     $("#af_history").value.trim(),
     gallery:     editingGallery.join("\n"),
     website:     $("#af_website").value.trim(),

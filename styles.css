@@ -116,7 +116,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:
 
 /* ── RESULT BAR ── */
 .result-bar{position:relative;z-index:1;max-width:var(--maxw);margin:18px auto 0;padding:0 20px}
-.result-count{color:var(--text-dim);font-size:.9rem}
+.result-count{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 16px;border-radius:999px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text-dim);font-size:.9rem;font-weight:500;
+  box-shadow:0 1px 2px var(--shadow);
+}
+.result-count:empty{display:none}
+.result-count svg{width:15px;height:15px;color:var(--gold);flex-shrink:0}
+.result-count strong{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
 
 /* ── CARD GRID ── */
 .grid{
@@ -550,7 +559,16 @@ footer{
 .profile-btn-icon{width:20px;height:20px;flex-shrink:0;color:var(--gold)}
 .profile-btn-arrow{width:17px;height:17px;flex-shrink:0;margin-left:auto}
 
-/* ── ฟอร์มอัปโหลดรูป (โลโก้/เจ้าอาวาส) ── */
+/* ── ดรอปดาวน์ วัน/เดือน/ปี (วันที่สร้างวัด) ── */
+.date-selects{display:flex;gap:10px}
+.date-sel{
+  flex:1;min-width:0;
+  padding:11px 12px;border-radius:11px;border:1px solid var(--border-2);
+  background:var(--surface);color:var(--text);font-family:inherit;font-size:.92rem;cursor:pointer;transition:.2s;
+}
+.date-sel:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(45,127,249,.18)}
+
+/* ── ฟอร์มอัปโหลดรูป (โลโก/เจ้าอาวาส) ── */
 .upload-field{display:flex;gap:8px;align-items:stretch}
 .upload-field input{flex:1;min-width:0}
 .upload-mini{
