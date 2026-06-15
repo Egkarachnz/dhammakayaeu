@@ -69,8 +69,12 @@ async function loadData() {
       const res  = await fetch(CLOUD_URL, { method: "GET" });
       const data = await res.json();
       if (data && data.ok) {
-        if (Array.isArray(data.temples)) { TEMPLES = data.temples.filter(t => t.name); saveTemplesToStorage(); }
-        if (Array.isArray(data.events))  { EVENTS  = data.events;  saveEventsToStorage(); }
+        // อัปเดตจากคลาวด์เฉพาะเมื่อมีข้อมูลจริง
+        // (กันกรณีคลาวด์ที่ยังว่างมาทับข้อมูลตั้งต้น 30 วัด ก่อนกด "อัปโหลดทั้งหมด")
+        const ct = Array.isArray(data.temples) ? data.temples.filter(t => t.name) : [];
+        const ce = Array.isArray(data.events)  ? data.events : [];
+        if (ct.length) { TEMPLES = ct; saveTemplesToStorage(); }
+        if (ce.length) { EVENTS  = ce; saveEventsToStorage(); }
         cloudOK = true;
         render();
       } else { cloudOK = false; }

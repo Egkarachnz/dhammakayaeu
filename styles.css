@@ -57,10 +57,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:
 }
 [data-theme="light"] .hero-stars{opacity:.16}
 .hero-inner{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto;display:flex;flex-direction:column;align-items:center}
-.emblem{width:56px;height:56px;margin:0 0 14px;display:block;filter:drop-shadow(0 4px 14px var(--glow))}
-.emblem .ray{stroke:var(--gold);opacity:.55}
-.emblem .core{fill:var(--gold)}
-.emblem .lotus{fill:none;stroke:var(--gold);stroke-width:3}
+.emblem{width:clamp(104px,16vw,140px);height:auto;margin:0 0 16px;display:block;filter:drop-shadow(0 8px 22px var(--glow))}
 .title{font-weight:700;font-size:clamp(1.7rem,4.4vw,2.6rem);letter-spacing:.2px;line-height:1.2}
 .subtitle{color:var(--text-dim);font-size:1rem;margin-top:6px;font-weight:300}
 
@@ -399,7 +396,7 @@ footer{
 .footer-inner .footer-col:last-child .footer-socials{justify-content:flex-end}
 .footer-col{min-width:0}
 .footer-brand{display:flex;gap:16px;align-items:flex-start}
-.footer-emblem{width:48px;height:48px;flex-shrink:0}
+.footer-emblem{width:66px;height:auto;flex-shrink:0}
 .footer-name{font-weight:700;font-size:1.08rem;color:var(--text);margin-bottom:4px}
 .footer-tagline{font-size:.82rem;color:var(--gold);line-height:1.5;font-weight:500}
 .footer-desc{font-size:.84rem;color:var(--text-dim);line-height:1.65;margin-top:10px;max-width:380px}
