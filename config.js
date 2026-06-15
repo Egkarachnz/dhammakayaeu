@@ -7,7 +7,7 @@ const CONFIG = {
      • ถ้าใส่ลิงก์ → ข้อมูลที่บันทึกจะอยู่ถาวร แชร์ทุกอุปกรณ์ ไม่หายเมื่ออัปเดตโค้ด
      • ถ้าเว้นว่าง → เก็บเฉพาะในเครื่องนี้ (localStorage) เท่านั้น
      ดูวิธีติดตั้งใน apps-script.gs หรือ SETUP.md */
-  DATA_URL: "https://script.google.com/macros/s/AKfycbz0FhAR7nmKoAaZWwlDMOakexsIFYqbKjt6QodoH2mPtGYWtpb5rbHTD5-D6GmVvuw/exec",
+  DATA_URL: "https://script.google.com/macros/s/AKfycbyQcZMSS2ttCwCPNlS4lV4eSNLG3i8mcW4G9lmCcp46oaGtlrNo-wRium5ogfhRcyIY/exec",
 
   /* รหัสผ่านเข้าหลังบ้านแอดมิน (ต้องตรงกับ SECRET ใน apps-script.gs) */
   ADMIN_PASSWORD: "dhamma2569",
