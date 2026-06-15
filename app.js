@@ -212,7 +212,7 @@ function cardHTML(t) {
         </div>
         <div class="card-row">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          <span>พระประจำวัด: <strong>${monks} รูป</strong></span>
+          <span>พระประจำ: <strong>${monks} รูป</strong></span>
         </div>
         <div class="card-row">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -261,21 +261,22 @@ function openDetail(id) {
     `<a href="${esc(t[s.key])}" target="_blank" rel="noopener" class="social-btn ${s.cls}" title="${s.label}">${s.icon}<span>${s.label}</span></a>`
   ).join("");
 
-  // ── Info cards ──
+  // ── Info cards — แสดงทุกช่อง (ตรงไหนไม่มีข้อมูลขึ้นขีด —) ──
+  const dash = `<span class="info-dash">—</span>`;
   const infoCards = [
-    addr && `<div class="modal-info-card">
+    `<div class="modal-info-card">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      <div><span class="info-label">ที่อยู่</span><span class="info-val">${esc(addr)}</span></div>
+      <div><span class="info-label">ที่อยู่</span><span class="info-val">${addr ? esc(addr) : dash}</span></div>
     </div>`,
-    t.phone && `<div class="modal-info-card">
+    `<div class="modal-info-card">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13 1 .37 1.96.72 2.88a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.2-1.29a2 2 0 0 1 2.11-.45c.92.35 1.88.59 2.88.72A2 2 0 0 1 22 16.92z"/></svg>
-      <div><span class="info-label">โทรศัพท์</span><a class="info-val" href="tel:${esc(String(t.phone).replace(/\s/g,""))}">${esc(t.phone)}</a></div>
+      <div><span class="info-label">โทรศัพท์</span>${t.phone ? `<a class="info-val" href="tel:${esc(String(t.phone).replace(/\s/g,""))}">${esc(t.phone)}</a>` : `<span class="info-val">${dash}</span>`}</div>
     </div>`,
-    t.website && `<div class="modal-info-card">
+    `<div class="modal-info-card">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      <div><span class="info-label">เว็บไซต์</span><a class="info-val" href="${esc(t.website)}" target="_blank" rel="noopener">${esc(t.website.replace(/^https?:\/\//,""))}</a></div>
+      <div><span class="info-label">เว็บไซต์</span>${t.website ? `<a class="info-val" href="${esc(t.website)}" target="_blank" rel="noopener">${esc(t.website.replace(/^https?:\/\//,""))}</a>` : `<span class="info-val">${dash}</span>`}</div>
     </div>`,
-  ].filter(Boolean).join("");
+  ].join("");
 
   $("#detailModal").innerHTML = `
     <button class="modal-close" data-close="detailOverlay" aria-label="ปิด">✕</button>
@@ -284,11 +285,20 @@ function openDetail(id) {
       ${abbotEl}
       <div class="modal-temple">${esc(t.name)}</div>
       ${t.country ? `<div class="modal-country-badge">${flag(t.country)}${esc(t.country)}</div>` : ""}
-      ${t.abbot ? `<div class="modal-abbot-label">เจ้าอาวาส</div><div class="modal-abbot-name">${esc(t.abbot)}</div>` : ""}
+      <div class="modal-people">
+        <div class="modal-person">
+          <span class="modal-abbot-label">เจ้าอาวาส</span>
+          <span class="modal-abbot-name">${t.abbot ? esc(t.abbot) : dash}</span>
+        </div>
+        <div class="modal-person">
+          <span class="modal-abbot-label">รองเจ้าอาวาส</span>
+          <span class="modal-abbot-name">${t.deputy ? esc(t.deputy) : dash}</span>
+        </div>
+      </div>
     </div>
 
     <div class="modal-body">
-      ${infoCards ? `<div class="modal-info-grid">${infoCards}</div>` : ""}
+      <div class="modal-info-grid">${infoCards}</div>
       ${socialHTML ? `<div class="modal-socials">${socialHTML}</div>` : ""}
 
       ${murl ? `<a href="${esc(murl)}" target="_blank" rel="noopener" class="map-btn">
@@ -299,7 +309,7 @@ function openDetail(id) {
 
       <div class="section-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-        พระประจำวัด
+        พระประจำ
       </div>
       <div class="monk-list">
         ${monks.length ? monks.map(m => `<div class="monk-item"><span class="dot"></span>${esc(m)}</div>`).join("")
@@ -396,7 +406,7 @@ function renderAdminList(filter) {
 }
 
 function newTempleForm() {
-  const blank = { id: uid(), name:"", country:"", abbot:"", abbot_photo:"", logo:"", address:"", map_url:"", phone:"", monks:"", monk_count:"" };
+  const blank = { id: uid(), name:"", country:"", abbot:"", deputy:"", abbot_photo:"", logo:"", address:"", map_url:"", phone:"", monks:"", monk_count:"" };
   _showForm(blank, true);
 }
 
@@ -435,6 +445,10 @@ function _showForm(t, isNew) {
       <div class="form-field">
         <label>เจ้าอาวาส</label>
         <input id="af_abbot" type="text" value="${esc(t.abbot)}" placeholder="พระ...">
+      </div>
+      <div class="form-field">
+        <label>รองเจ้าอาวาส</label>
+        <input id="af_deputy" type="text" value="${esc(t.deputy||'')}" placeholder="พระ...">
       </div>
       <div class="form-field">
         <label>จำนวนพระ (ระบุตัวเลขหรือปล่อยว่าง)</label>
@@ -502,6 +516,7 @@ async function saveTemple(isNew) {
     name,
     country:     $("#af_country").value.trim(),
     abbot:       $("#af_abbot").value.trim(),
+    deputy:      $("#af_deputy").value.trim(),
     abbot_photo: $("#af_abbot_photo").value.trim(),
     logo:        $("#af_logo").value.trim(),
     address:     $("#af_address").value.trim(),

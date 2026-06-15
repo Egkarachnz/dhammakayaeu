@@ -27,7 +27,7 @@ const TEMPLE_SHEET = "Temples";
 const EVENT_SHEET  = "Events";
 
 const TEMPLE_COLS = [
-  "id", "name", "country", "abbot", "abbot_photo", "logo", "address",
+  "id", "name", "country", "abbot", "deputy", "abbot_photo", "logo", "address",
   "map_url", "phone", "monks", "monk_count", "website",
   "facebook", "line", "youtube", "instagram"
 ];
