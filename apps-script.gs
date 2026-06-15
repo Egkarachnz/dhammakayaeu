@@ -29,9 +29,13 @@ const EVENT_SHEET  = "Events";
 const TEMPLE_COLS = [
   "id", "name", "country", "abbot", "deputy", "abbot_photo", "logo", "address",
   "map_url", "phone", "monks", "monk_count", "website",
-  "facebook", "line", "youtube", "instagram"
+  "facebook", "line", "youtube", "instagram",
+  "established", "history", "gallery"   // ← เพิ่มใหม่: วันสร้างวัด, ประวัติ, ลิงก์รูปภาพ
 ];
 const EVENT_COLS = ["id", "temple_id", "date", "title", "description"];
+
+// โฟลเดอร์ใน Google Drive สำหรับเก็บรูปที่แอดมินอัปโหลด (สร้างให้อัตโนมัติ)
+const IMAGE_FOLDER = "DhammakayaEU Images";
 
 /** ── อ่านข้อมูลทั้งหมด (เว็บเรียกตอนโหลดหน้า) ── */
 function doGet() {
@@ -47,6 +51,12 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     if (data.secret !== SECRET) return out({ ok: false, error: "unauthorized" });
+
+    // ── อัปโหลดรูปขึ้น Google Drive แล้วคืนลิงก์ ──
+    if (data.type === "image") {
+      if (data.action === "upload") return out({ ok: true, url: saveImage(data) });
+      return out({ ok: false, error: "unknown image action" });
+    }
 
     const cfg = data.type === "event"
       ? { name: EVENT_SHEET,  cols: EVENT_COLS }
@@ -110,13 +120,44 @@ function readSheet(name, cols) {
     });
 }
 
-/** คืนชีต ถ้ายังไม่มีจะสร้างพร้อมหัวคอลัมน์ */
+/** คืนชีต ถ้ายังไม่มีจะสร้างพร้อมหัวคอลัมน์
+ *  ถ้ามีอยู่แล้วแต่หัวคอลัมน์ไม่ครบ (เช่นเพิ่มฟิลด์ใหม่) จะต่อหัวให้อัตโนมัติ
+ *  โดยลำดับคอลัมน์เดิมไม่เปลี่ยน ข้อมูลเก่าจึงไม่หาย */
 function getSheet(name, cols) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(name);
-  if (!sheet) { sheet = ss.insertSheet(name); sheet.appendRow(cols); }
-  else if (sheet.getLastRow() === 0) { sheet.appendRow(cols); }
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, cols.length).setValues([cols]);
+    return sheet;
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, cols.length).setValues([cols]);
+    return sheet;
+  }
+  // ตรวจหัวคอลัมน์ปัจจุบัน — ถ้าไม่ตรง/ไม่ครบ ให้เขียนหัวมาตรฐานทับ (ลำดับเดิมตรงกับ cols อยู่แล้ว)
+  const header = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0].map(h => String(h).trim());
+  let needs = false;
+  for (let i = 0; i < cols.length; i++) { if (header[i] !== cols[i]) { needs = true; break; } }
+  if (needs) sheet.getRange(1, 1, 1, cols.length).setValues([cols]);
   return sheet;
+}
+
+/** บันทึกรูป base64 ลง Google Drive แล้วคืนลิงก์ที่ฝังแสดงได้ */
+function saveImage(data) {
+  const folder  = getImageFolder();
+  const bytes   = Utilities.base64Decode(data.dataBase64);
+  const blob    = Utilities.newBlob(bytes, data.mimeType || "image/jpeg",
+                    data.filename || ("img_" + Date.now() + ".jpg"));
+  const file    = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return "https://drive.google.com/thumbnail?id=" + file.getId() + "&sz=w1600";
+}
+
+/** คืนโฟลเดอร์เก็บรูป (สร้างให้ถ้ายังไม่มี) */
+function getImageFolder() {
+  const it = DriveApp.getFoldersByName(IMAGE_FOLDER);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(IMAGE_FOLDER);
 }
 
 function out(obj) {

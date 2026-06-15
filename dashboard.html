@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · วัดพระธรรมกายในทวีปยุโรป</title>
+<link rel="icon" type="image/png" href="assets/logo.png?v=1">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('temple-theme')||'light')}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=11">
+</head>
+<body>
+
+<!-- ประตูรหัสผ่าน -->
+<div class="overlay" id="gateOverlay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-pad">
+      <h3>เข้าสู่ Dashboard แอดมิน</h3>
+      <p class="hint">ใส่รหัสผ่านแอดมินเพื่อดูสถิติ นำเข้า/ส่งออกข้อมูล</p>
+      <div class="form-field">
+        <label for="gatePw">รหัสผ่าน</label>
+        <input type="password" id="gatePw" placeholder="••••••••" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <a class="btn" href="index.html">กลับหน้าแรก</a>
+        <button class="btn primary" id="gateSubmit">เข้าสู่ระบบ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- เนื้อหาหลัก (ซ่อนจนกว่าจะปลดล็อก) -->
+<div id="dashMain" style="display:none">
+  <div class="dash-top">
+    <div class="dash-top-inner">
+      <span class="dash-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>
+        Dashboard &amp; สถิติ
+      </span>
+      <span class="dash-spacer"></span>
+      <a class="tpage-back" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        กลับหน้าแรก
+      </a>
+      <button class="tool-btn" id="themeBtn" title="สลับโหมด" aria-label="สลับโหมด">
+        <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg id="iconSun" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="dash-wrap">
+    <div class="dash-tabs">
+      <button class="dash-tab active" data-tab="stats">📊 สถิติ</button>
+      <button class="dash-tab" data-tab="import">⇅ นำเข้าข้อมูล</button>
+      <button class="dash-tab" data-tab="export">🖼️ ส่งออก A4 (30 วัด)</button>
+    </div>
+
+    <!-- แท็บ A: สถิติ -->
+    <section class="dash-panel active" id="panel-stats">
+      <div class="dash-toolbar">
+        <span class="spacer"></span>
+        <button class="export-btn" onclick="exportStats('png')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> PNG</button>
+        <button class="export-btn" onclick="exportStats('jpg')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> JPG</button>
+        <button class="export-btn primary" onclick="exportStats('pdf')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg> PDF</button>
+      </div>
+
+      <div id="dashCapture">
+        <div class="dash-stat-grid" id="statGrid"></div>
+        <div class="dash-cards">
+          <div class="dash-card">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg> จำนวนวัดต่อประเทศ</h3>
+            <canvas id="chartCountry" height="220"></canvas>
+          </div>
+          <div class="dash-card">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10H12z"/></svg> จำนวนพระต่อประเทศ</h3>
+            <canvas id="chartMonks" height="220"></canvas>
+          </div>
+          <div class="dash-card" style="grid-column:1/-1">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> ความครบถ้วนของข้อมูล</h3>
+            <div id="completeBars"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- แท็บ B: นำเข้า -->
+    <section class="dash-panel" id="panel-import">
+      <div class="import-box">
+        <h3 style="margin-bottom:8px;font-size:1.05rem;font-weight:700">นำเข้าข้อมูลวัดจาก Excel / Google Sheets</h3>
+        <p class="import-note">ขั้นตอน: ① ดาวน์โหลดไฟล์ตัวอย่าง → ② กรอกข้อมูลใน Excel หรือ Google Sheets → ③ บันทึกเป็น <b>.xlsx</b> หรือ <b>.csv</b> → ④ อัปโหลดกลับที่นี่ → ⑤ ตรวจตัวอย่าง แล้วกดยืนยัน</p>
+        <div class="dash-toolbar" style="margin:16px 0 4px">
+          <button class="export-btn" onclick="downloadTemplate('xlsx')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> ดาวน์โหลดไฟล์ตัวอย่าง (.xlsx)</button>
+          <button class="export-btn" onclick="downloadTemplate('current')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> ส่งออกข้อมูลปัจจุบันทั้งหมด (.xlsx)</button>
+        </div>
+      </div>
+
+      <div class="import-box">
+        <label class="import-drop" id="importDrop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          <div><b>คลิกเพื่อเลือกไฟล์</b> หรือ ลากไฟล์มาวางที่นี่</div>
+          <div style="font-size:.82rem;margin-top:4px">รองรับ .xlsx, .xls, .csv</div>
+          <input type="file" id="importFile" accept=".xlsx,.xls,.csv" hidden>
+        </label>
+        <div id="importResult"></div>
+      </div>
+    </section>
+
+    <!-- แท็บ C: ส่งออก A4 -->
+    <section class="dash-panel" id="panel-export">
+      <div class="import-box">
+        <h3 style="margin-bottom:12px;font-size:1.05rem;font-weight:700">ส่งออกทั้ง 30 วัดเป็นไฟล์ขนาด A4</h3>
+        <div class="export-options" id="layoutOptions">
+          <label class="export-radio sel"><input type="radio" name="a4layout" value="single" checked> 1 วัด / หน้า (รายละเอียดเต็ม)</label>
+          <label class="export-radio"><input type="radio" name="a4layout" value="catalog"> สมุดรวม (6 วัด / หน้า)</label>
+        </div>
+        <div class="dash-toolbar" style="margin-top:6px">
+          <button class="export-btn primary" id="buildA4Btn" onclick="buildA4()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> สร้างหน้าตัวอย่าง</button>
+          <span class="spacer"></span>
+          <button class="export-btn" id="a4PngBtn" onclick="exportA4('png')" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> ดาวน์โหลด PNG (.zip)</button>
+          <button class="export-btn" id="a4JpgBtn" onclick="exportA4('jpg')" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> ดาวน์โหลด JPG (.zip)</button>
+          <button class="export-btn primary" id="a4PdfBtn" onclick="exportA4('pdf')" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg> ดาวน์โหลด PDF</button>
+        </div>
+        <p class="import-note" id="a4Hint">กด"สร้างหน้าตัวอย่าง" เพื่อดูตัวอย่างก่อน แล้วจึงเลือกดาวน์โหลด</p>
+      </div>
+      <div class="export-stage" id="a4Stage"></div>
+    </section>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ไลบรารี (โหลดเฉพาะหน้านี้) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+<script src="config.js?v=9"></script>
+<script src="data.js?v=9"></script>
+<script src="shared.js?v=1"></script>
+<script src="dashboard.js?v=1"></script>
+</body>
+</html>

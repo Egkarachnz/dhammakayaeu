@@ -28,7 +28,83 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const mapUrl = a => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a || "");
 const splitMonks = s => String(s || "").split(/[;\n]/).map(x => x.trim()).filter(Boolean);
+const splitList  = s => String(s || "").split(/[\n,]/).map(x => x.trim()).filter(Boolean); // gallery
 const uid = () => "t" + Date.now() + Math.random().toString(36).slice(2, 6);
+
+/* ── คำนวณอายุวัด (ปี/เดือน/วัน) จากวันจริง ── */
+function parseEstablished(v) {
+  if (!v) return null;
+  if (v instanceof Date) return isNaN(v) ? null : v;
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function templeAge(established) {
+  const start = parseEstablished(established);
+  if (!start) return null;
+  const now = new Date();
+  if (start > now) return null;
+  let years = now.getFullYear() - start.getFullYear();
+  let months = now.getMonth() - start.getMonth();
+  let days = now.getDate() - start.getDate();
+  if (days < 0) { months--; days += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+  if (months < 0) { years--; months += 12; }
+  return { years, months, days };
+}
+function ageText(established) {
+  const a = templeAge(established);
+  if (!a) return "";
+  const parts = [];
+  if (a.years)  parts.push(a.years + " ปี");
+  if (a.months) parts.push(a.months + " เดือน");
+  parts.push(a.days + " วัน");
+  return parts.join(" ");
+}
+
+/* ── ย่อรูปในเบราว์เซอร์ก่อนอัปโหลด (เร็ว+ไฟล์เล็ก) ── */
+function compressImage(file, maxDim = 1600, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else        { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);   // กันพื้นหลังดำใน JPEG
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = c.toDataURL("image/jpeg", quality);
+        resolve({
+          base64: dataUrl.split(",")[1],
+          mime: "image/jpeg",
+          filename: (file.name || "image").replace(/\.[^.]+$/, "") + ".jpg",
+        });
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ── อัปโหลดรูปขึ้นคลาวด์ (Google Drive ผ่าน Apps Script) คืนลิงก์ ── */
+async function uploadImage(file) {
+  if (!CLOUD_URL) throw new Error("no-cloud");
+  const img = await compressImage(file);
+  const r = await cloudSend("image", "upload", { filename: img.filename, mimeType: img.mime, dataBase64: img.base64 });
+  if (r && r.ok && r.url) return r.url;
+  throw new Error((r && r.error) || "upload-failed");
+}
 
 function toast(msg, isErr) {
   const t = $("#toast"); t.textContent = msg;
@@ -261,6 +337,12 @@ function openDetail(id) {
     `<a href="${esc(t[s.key])}" target="_blank" rel="noopener" class="social-btn ${s.cls}" title="${s.label}">${s.icon}<span>${s.label}</span></a>`
   ).join("");
 
+  // ── ป้ายอายุวัด (ใต้ชื่อวัด) ──
+  const aged    = ageText(t.established);
+  const ageHTML = aged
+    ? `<div class="modal-age"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg> สร้างมาแล้ว <strong>${esc(aged)}</strong></div>`
+    : "";
+
   // ── Info cards — แสดงทุกช่อง (ตรงไหนไม่มีข้อมูลขึ้นขีด —) ──
   const dash = `<span class="info-dash">—</span>`;
   const infoCards = [
@@ -285,6 +367,7 @@ function openDetail(id) {
       ${abbotEl}
       <div class="modal-temple">${esc(t.name)}</div>
       ${t.country ? `<div class="modal-country-badge">${flag(t.country)}${esc(t.country)}</div>` : ""}
+      ${ageHTML}
       <div class="modal-people">
         <div class="modal-person">
           <span class="modal-abbot-label">เจ้าอาวาส</span>
@@ -300,6 +383,12 @@ function openDetail(id) {
     <div class="modal-body">
       <div class="modal-info-grid">${infoCards}</div>
       ${socialHTML ? `<div class="modal-socials">${socialHTML}</div>` : ""}
+
+      <a href="temple.html?id=${encodeURIComponent(t.id)}" class="profile-btn">
+        <svg class="profile-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        ประวัติและภาพวัด
+        <svg class="profile-btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
 
       ${murl ? `<a href="${esc(murl)}" target="_blank" rel="noopener" class="map-btn">
         <svg class="map-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -358,6 +447,7 @@ function openLogin() {
 function tryLogin() {
   if ($("#pwInput").value === CONFIG.ADMIN_PASSWORD) {
     setAdmin(true);
+    try { localStorage.setItem("dh-admin-until", String(Date.now() + 8 * 3600 * 1000)); } catch (e) {}
     closeOverlay("loginOverlay");
     const btn = $("#adminBtn");
     btn.classList.remove("login-anim");
@@ -380,7 +470,9 @@ function setAdmin(on) {
   $("#adminBtn").classList.toggle("active", on);
 }
 function adminLogout() {
-  setAdmin(false); closeOverlay("adminOverlay"); toast("ออกจากโหมดแอดมินแล้ว");
+  setAdmin(false);
+  try { localStorage.removeItem("dh-admin-until"); } catch (e) {}
+  closeOverlay("adminOverlay"); toast("ออกจากโหมดแอดมินแล้ว");
 }
 
 /* ============================================================
@@ -406,7 +498,7 @@ function renderAdminList(filter) {
 }
 
 function newTempleForm() {
-  const blank = { id: uid(), name:"", country:"", abbot:"", deputy:"", abbot_photo:"", logo:"", address:"", map_url:"", phone:"", monks:"", monk_count:"" };
+  const blank = { id: uid(), name:"", country:"", abbot:"", deputy:"", abbot_photo:"", logo:"", address:"", map_url:"", phone:"", monks:"", monk_count:"", established:"", history:"", gallery:"" };
   _showForm(blank, true);
 }
 
@@ -415,7 +507,10 @@ function openTempleForm(id) {
   _showForm(t, false);
 }
 
+let editingGallery = [];
+
 function _showForm(t, isNew) {
+  editingGallery = splitList(t.gallery);
   // highlight active in sidebar
   document.querySelectorAll(".admin-item").forEach(el => el.classList.remove("active"));
   if (!isNew) {
@@ -454,6 +549,10 @@ function _showForm(t, isNew) {
         <label>จำนวนพระ (ระบุตัวเลขหรือปล่อยว่าง)</label>
         <input id="af_monk_count" type="number" min="0" value="${esc(t.monk_count)}" placeholder="0">
       </div>
+      <div class="form-field">
+        <label>วันที่สร้าง / เปิดวัด (ใช้คำนวณอายุวัด)</label>
+        <input id="af_established" type="date" value="${esc(t.established || '')}">
+      </div>
       <div class="form-field span-2">
         <label>ที่อยู่</label>
         <input id="af_address" type="text" value="${esc(t.address)}" placeholder="เลขที่ ถนน เมือง ประเทศ">
@@ -462,13 +561,38 @@ function _showForm(t, isNew) {
         <label>รายชื่อพระ (คั่นด้วย ; หรือขึ้นบรรทัดใหม่)</label>
         <textarea id="af_monks" rows="3" placeholder="พระมหา ก.&#10;พระ ข.&#10;พระ ค.">${esc(t.monks)}</textarea>
       </div>
-      <div class="form-field">
-        <label>URL รูปโลโก้วัด</label>
-        <input id="af_logo" type="text" value="${esc(t.logo)}" placeholder="https://...">
+      <div class="form-field span-2">
+        <label>ประวัติความเป็นมาของวัด (แสดงในหน้าประวัติวัด)</label>
+        <textarea id="af_history" rows="5" placeholder="เล่าความเป็นมา การก่อตั้ง กิจกรรมเด่น ฯลฯ">${esc(t.history || '')}</textarea>
+      </div>
+      <div class="form-field span-2">
+        <label>ภาพวัด / ภาพกิจกรรม (แสดงในหน้าประวัติวัด)</label>
+        <div class="gallery-editor">
+          <div class="gallery-grid" id="af_gallery_list"></div>
+          <div class="gallery-actions">
+            <label class="btn sm upload-mini">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+              อัปโหลดรูป
+              <input type="file" accept="image/*" multiple hidden onchange="handleGalleryUpload(this)">
+            </label>
+            <input id="af_gallery_url" type="text" class="gallery-url-input" placeholder="หรือวางลิงก์รูป (URL)">
+            <button type="button" class="btn sm" onclick="addGalleryUrl()">เพิ่มลิงก์</button>
+          </div>
+        </div>
       </div>
       <div class="form-field">
-        <label>URL รูปเจ้าอาวาส</label>
-        <input id="af_abbot_photo" type="text" value="${esc(t.abbot_photo)}" placeholder="https://...">
+        <label>โลโก้วัด</label>
+        <div class="upload-field">
+          <input id="af_logo" type="text" value="${esc(t.logo)}" placeholder="วางลิงก์ หรือกดอัปโหลด">
+          <label class="btn sm upload-mini">อัปโหลด<input type="file" accept="image/*" hidden onchange="uploadToField(this,'#af_logo')"></label>
+        </div>
+      </div>
+      <div class="form-field">
+        <label>รูปเจ้าอาวาส</label>
+        <div class="upload-field">
+          <input id="af_abbot_photo" type="text" value="${esc(t.abbot_photo)}" placeholder="วางลิงก์ หรือกดอัปโหลด">
+          <label class="btn sm upload-mini">อัปโหลด<input type="file" accept="image/*" hidden onchange="uploadToField(this,'#af_abbot_photo')"></label>
+        </div>
       </div>
       <div class="form-field span-2">
         <label>URL Google Maps (ถ้าไม่ระบุจะสร้างจากที่อยู่อัตโนมัติ)</label>
@@ -504,7 +628,48 @@ function _showForm(t, isNew) {
       </div>
     </div>`;
 
+  renderGalleryEditor();
   setTimeout(() => $("#af_name").focus(), 80);
+}
+
+/* ── ตัวจัดการแกลเลอรีรูปในฟอร์มแอดมิน ── */
+function renderGalleryEditor() {
+  const el = $("#af_gallery_list"); if (!el) return;
+  if (!editingGallery.length) { el.innerHTML = `<div class="gallery-empty">ยังไม่มีรูป — กดอัปโหลดหรือวางลิงก์</div>`; return; }
+  el.innerHTML = editingGallery.map((url, i) => `
+    <div class="gallery-thumb">
+      <img src="${esc(url)}" alt="" loading="lazy" onerror="this.style.opacity=.3">
+      <button type="button" class="gallery-del" title="ลบรูปนี้" onclick="removeGalleryImg(${i})">✕</button>
+    </div>`).join("");
+}
+function addGalleryUrl() {
+  const inp = $("#af_gallery_url"); const v = (inp.value || "").trim();
+  if (!v) return;
+  editingGallery.push(v); inp.value = ""; renderGalleryEditor();
+}
+function removeGalleryImg(i) { editingGallery.splice(i, 1); renderGalleryEditor(); }
+
+async function handleGalleryUpload(input) {
+  const files = Array.from(input.files || []); input.value = "";
+  if (!files.length) return;
+  if (!CLOUD_URL) { toast("การอัปโหลดต้องตั้งค่าคลาวด์ก่อน — กรุณาวางลิงก์รูปแทน", true); return; }
+  toast(`กำลังอัปโหลด ${files.length} รูป…`);
+  let ok = 0;
+  for (const f of files) {
+    try { editingGallery.push(await uploadImage(f)); ok++; renderGalleryEditor(); } catch (e) {}
+  }
+  if (ok === files.length) toast(`อัปโหลดสำเร็จ ${ok} รูป ✓`);
+  else if (ok > 0)        toast(`อัปโหลดสำเร็จ ${ok}/${files.length} รูป (บางรูปไม่สำเร็จ)`, true);
+  else                    toast("อัปโหลดไม่สำเร็จ — โปรด Deploy Apps Script เวอร์ชันใหม่ หรือวางลิงก์รูปแทน", true);
+}
+
+async function uploadToField(input, fieldSel) {
+  const f = (input.files || [])[0]; input.value = "";
+  if (!f) return;
+  if (!CLOUD_URL) { toast("การอัปโหลดต้องตั้งค่าคลาวด์ก่อน — วางลิงก์แทนได้", true); return; }
+  toast("กำลังอัปโหลด…");
+  try { $(fieldSel).value = await uploadImage(f); toast("อัปโหลดสำเร็จ ✓"); }
+  catch (e) { toast("อัปโหลดไม่สำเร็จ — Deploy Apps Script ใหม่ หรือวางลิงก์แทน", true); }
 }
 
 async function saveTemple(isNew) {
@@ -524,6 +689,9 @@ async function saveTemple(isNew) {
     phone:       $("#af_phone").value.trim(),
     monks:       $("#af_monks").value.trim(),
     monk_count:  $("#af_monk_count").value.trim(),
+    established: $("#af_established").value.trim(),
+    history:     $("#af_history").value.trim(),
+    gallery:     editingGallery.join("\n"),
     website:     $("#af_website").value.trim(),
     facebook:    $("#af_facebook").value.trim(),
     line:        $("#af_line").value.trim(),
