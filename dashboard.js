@@ -334,7 +334,7 @@
      ============================================================ */
   const A4_HEAD = (sub) => `
     <div class="a4-head">
-      <img src="assets/logo.png?v=1" alt="" crossorigin="anonymous">
+      <img src="assets/logo.png?v=2" alt="" crossorigin="anonymous">
       <div><div class="a4-htitle">วัดพระธรรมกายในทวีปยุโรป</div><div class="a4-hsub">${sub}</div></div>
     </div>`;
   const A4_FOOT = (n, total) => `<div class="a4-foot"><span>Dhammakaya Temples &amp; Meditation Centres Across Europe</span><span>หน้า ${n} / ${total}</span></div>`;
