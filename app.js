@@ -106,6 +106,16 @@ async function uploadImage(file) {
   throw new Error((r && r.error) || "upload-failed");
 }
 
+/* แปลง error การอัปโหลดเป็นข้อความภาษาไทยที่บอกวิธีแก้ */
+function uploadErrMsg(e) {
+  const s = String((e && e.message) || e || "");
+  if (/Berechtigung|permission|authoriz|\bdrive\b/i.test(s))
+    return "อัปโหลดไม่สำเร็จ: ยังไม่ได้อนุญาตสิทธิ์ Google Drive — เปิด Apps Script แล้ว Run ฟังก์ชัน authorizeDrive 1 ครั้ง แล้วกด Allow (ดู SETUP.md)";
+  if (/no-cloud/.test(s))
+    return "ยังไม่ได้ตั้งค่าคลาวด์ — กรุณาวางลิงก์รูปแทน";
+  return "อัปโหลดไม่สำเร็จ — ตรวจการตั้งค่า Apps Script หรือวางลิงก์รูปแทน";
+}
+
 function toast(msg, isErr) {
   const t = $("#toast"); t.textContent = msg;
   t.className = "toast show" + (isErr ? " err" : "");
@@ -680,13 +690,13 @@ async function handleGalleryUpload(input) {
   if (!files.length) return;
   if (!CLOUD_URL) { toast("การอัปโหลดต้องตั้งค่าคลาวด์ก่อน — กรุณาวางลิงก์รูปแทน", true); return; }
   toast(`กำลังอัปโหลด ${files.length} รูป…`);
-  let ok = 0;
+  let ok = 0, lastErr = null;
   for (const f of files) {
-    try { editingGallery.push(await uploadImage(f)); ok++; renderGalleryEditor(); } catch (e) {}
+    try { editingGallery.push(await uploadImage(f)); ok++; renderGalleryEditor(); } catch (e) { lastErr = e; }
   }
   if (ok === files.length) toast(`อัปโหลดสำเร็จ ${ok} รูป ✓`);
   else if (ok > 0)        toast(`อัปโหลดสำเร็จ ${ok}/${files.length} รูป (บางรูปไม่สำเร็จ)`, true);
-  else                    toast("อัปโหลดไม่สำเร็จ — โปรด Deploy Apps Script เวอร์ชันใหม่ หรือวางลิงก์รูปแทน", true);
+  else                    toast(uploadErrMsg(lastErr), true);
 }
 
 async function uploadToField(input, fieldSel) {
@@ -695,7 +705,7 @@ async function uploadToField(input, fieldSel) {
   if (!CLOUD_URL) { toast("การอัปโหลดต้องตั้งค่าคลาวด์ก่อน — วางลิงก์แทนได้", true); return; }
   toast("กำลังอัปโหลด…");
   try { $(fieldSel).value = await uploadImage(f); toast("อัปโหลดสำเร็จ ✓"); }
-  catch (e) { toast("อัปโหลดไม่สำเร็จ — Deploy Apps Script ใหม่ หรือวางลิงก์แทน", true); }
+  catch (e) { toast(uploadErrMsg(e), true); }
 }
 
 async function saveTemple(isNew) {

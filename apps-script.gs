@@ -160,6 +160,17 @@ function getImageFolder() {
   return it.hasNext() ? it.next() : DriveApp.createFolder(IMAGE_FOLDER);
 }
 
+/**
+ * ⭐ รันฟังก์ชันนี้ 1 ครั้งเพื่ออนุญาตสิทธิ์ Google Drive (จำเป็นสำหรับการอัปโหลดรูป)
+ * วิธีรัน: เลือก "authorizeDrive" จากเมนูดรอปดาวน์ด้านบน แล้วกดปุ่ม ▶ Run
+ *         จะมีหน้าต่างขออนุญาต → Review permissions → เลือกบัญชี → Advanced → Allow
+ */
+function authorizeDrive() {
+  const f = getImageFolder();
+  Logger.log("อนุญาต Drive สำเร็จ — โฟลเดอร์: " + f.getName());
+  return "OK: " + f.getName();
+}
+
 function out(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
